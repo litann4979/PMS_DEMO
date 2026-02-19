@@ -2,11 +2,16 @@
 
 use App\Http\Controllers\Admin\BankController;
 use App\Http\Controllers\Admin\CustomerController;
+use App\Http\Controllers\Admin\NozzleController;
 use App\Http\Controllers\Admin\PartyController;
 use App\Http\Controllers\Admin\PaymentController;
 use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\PumpController;
 use App\Http\Controllers\Admin\PurchaseController;
 use App\Http\Controllers\Admin\SaleController;
+use App\Http\Controllers\Admin\SalesPersonController;
+use App\Http\Controllers\Admin\ShiftController;
+use App\Http\Controllers\Admin\StationController;
 use App\Http\Controllers\Admin\VehicleController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -38,6 +43,17 @@ Route::resource('payments', PaymentController::class)->only(['index', 'store']);
 
 //Own  Bank management
 Route::resource('banks', BankController::class);
+
+
+Route::resource('stations', StationController::class);
+Route::resource('pumps', PumpController::class);
+    Route::resource('nozzles', NozzleController::class);
+    Route::resource('sales-persons', SalesPersonController::class);
+
+Route::get('shifts', [ShiftController::class, 'index'])->name('shifts.index');
+Route::post('shifts/start', [ShiftController::class, 'start'])->name('shifts.start');
+Route::post('shifts/end', [ShiftController::class, 'end'])->name('shifts.end');
+
 });
 
 require __DIR__.'/settings.php';
