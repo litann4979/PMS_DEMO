@@ -81,7 +81,43 @@ export function AppSidebar() {
             icon: ReceiptIndianRupee,
             description: 'Payments & Receipts',
             badge: '27' 
-        }
+        },
+        {
+    title: 'Stations',
+    href: route('admin.stations.index'),
+    icon: Landmark,
+    description: 'Fuel Stations',
+    badge: ''
+},
+{
+    title: 'Pumps',
+    href: route('admin.pumps.index'),
+    icon: Droplets,
+    description: 'Dispensing Units',
+    badge: ''
+},
+{
+    title: 'Nozzle Management',
+    href: route('admin.nozzles.index'),
+    icon: Fuel,
+    description: 'Fuel Nozzles',
+    badge: ''
+},
+{
+    title: 'Sales Persons',
+    href: route('admin.sales-persons.index'),
+    icon: Users,
+    description: 'Station Staff',
+    badge: ''
+},
+{
+    title: 'Shift Management',
+    href: route('admin.shifts.index'),
+    icon: TrendingUp,
+    description: 'Meter Tracking',
+    badge: ''
+}
+
     ];
 
     const quickStats = [
