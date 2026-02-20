@@ -9,6 +9,7 @@ class PartyBankAccount extends Model
     protected $fillable = [
         'party_id',
         'bank_name',
+        'bank_type', 
         'account_holder_name',
         'account_number',
         'ifsc_code',

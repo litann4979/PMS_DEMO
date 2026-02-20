@@ -17,29 +17,34 @@ import {
 } from 'lucide-react';
 import { route } from '@/lib/route';
 
-export default function EditSale({ sale, customers, products }: any) {
+export default function EditSale({ sale, customers, products, nozzles }: any) {
     // Parse sale items to ensure sale_price is a number
     const parsedItems = sale.items.map((i: any) => ({
         id: i.id,
         product_id: i.product_id,
+         nozzle_id: i.nozzle_id || '',
         quantity: parseFloat(i.quantity) || 0,
         sale_price: parseFloat(i.sale_price) || 0
     }));
 
     const { data, setData, put, processing, errors } = useForm({
-        customer_id: sale.customer_id,
-        vehicle_id: sale.vehicle_id,
-        sale_date: sale.sale_date,
-        items: parsedItems,
-        notes: sale.notes || ''
-    });
+    customer_id: sale.customer_id,
+    vehicle_id: sale.vehicle_id,
+    sale_date: sale.sale_date,
+    items: parsedItems,
+    additional_payment: 0,
+    payment_method: 'CASH',
+    transaction_reference_id: '',
+    notes: sale.notes || ''
+});
+
 
     const [showSuccess, setShowSuccess] = useState(false);
     const selectedCustomer = customers.find((c: any) => c.id == data.customer_id);
     const availableVehicles = selectedCustomer?.vehicles || [];
 
     const addItem = () => {
-        setData('items', [...data.items, { product_id: '', quantity: 1, sale_price: 0 }]);
+        setData('items', [...data.items, { product_id: '', nozzle_id: '', quantity: 1, sale_price: 0 }]);
     };
 
     const updateItem = (index: number, field: string, value: any) => {
@@ -72,7 +77,12 @@ export default function EditSale({ sale, customers, products }: any) {
         const price = parseFloat(i.sale_price) || 0;
         return sum + (qty * price);
     }, 0);
-    
+    const existingPaid = parseFloat(sale.paid_amount) || 0;
+const additionalPayment = parseFloat(data.additional_payment as any) || 0;
+const newPaidTotal = existingPaid + additionalPayment;
+const newBalance = total - newPaidTotal;
+
+
     const totalItems = data.items.length;
     const isValid = data.customer_id && data.vehicle_id && data.items.every(i => i.product_id && parseFloat(i.quantity) > 0);
 
@@ -188,6 +198,7 @@ export default function EditSale({ sale, customers, products }: any) {
                             <ItemsTable
                                 items={data.items}
                                 products={products}
+                                nozzles={nozzles} 
                                 onUpdate={updateItem}
                                 onRemove={removeItem}
                                 onAdd={addItem}
@@ -209,108 +220,95 @@ export default function EditSale({ sale, customers, products }: any) {
                             </FormCard>
                         </div>
 
-                        {/* Right Column - 1/3 width */}
-                        <div className="space-y-6">
-                            {/* Order Summary */}
-                            <OrderSummary
-                                title="Order Summary"
-                                total={total}
-                                itemsCount={totalItems}
-                                className="sticky top-6"
-                            >
-                                <div className="flex justify-between items-center py-2 border-b border-amber-200/50 dark:border-amber-700/30">
-                                    <span className="text-sm font-medium text-amber-700 dark:text-amber-300">Invoice</span>
-                                    <span className="text-sm font-bold text-amber-800 dark:text-amber-200 bg-white dark:bg-gray-800 px-3 py-1 rounded-full font-mono">
-                                        {sale.invoice_number}
-                                    </span>
-                                </div>
+                        <div className="space-y-3">
 
-                                <div className="space-y-2 max-h-40 overflow-y-auto">
-                                    {data.items.map((item: any, idx: number) => {
-                                        const product = products.find((p: any) => p.id == item.product_id);
-                                        if (!item.product_id) return null;
-                                        const quantity = parseFloat(item.quantity) || 0;
-                                        const salePrice = parseFloat(item.sale_price) || 0;
-                                        
-                                        return (
-                                            <div key={idx} className="flex justify-between text-xs">
-                                                <span className="text-gray-600 dark:text-gray-400 truncate max-w-[120px]">
-                                                    {product?.name}
-                                                </span>
-                                                <span className="font-mono font-medium text-gray-700 dark:text-gray-300">
-                                                    {quantity} x ₹{salePrice.toFixed(2)}
-                                                </span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </OrderSummary>
+    {/* Total */}
+    <div className="flex justify-between text-sm font-semibold">
+        <span>Total Amount</span>
+        <span>₹ {total.toFixed(2)}</span>
+    </div>
 
-                            {/* Customer Summary Card */}
-                            {selectedCustomer && (
-                                <FormCard title="Customer Summary">
-                                    <div className="space-y-3">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-amber-50 dark:bg-amber-900/30 rounded-lg">
-                                                <User className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-bold text-gray-900 dark:text-white">
-                                                    {selectedCustomer.name}
-                                                </p>
-                                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                                    {selectedCustomer.mobile}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        {selectedCustomer.vehicles && (
-                                            <div className="flex items-center gap-3 pt-2 border-t border-gray-100 dark:border-gray-700">
-                                                <div className="p-2 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg">
-                                                    <Car className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                                        {selectedCustomer.vehicles.length} Registered Vehicles
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                </FormCard>
-                            )}
+    {/* Already Paid */}
+    <div className="flex justify-between text-sm text-green-600 font-semibold">
+        <span>Already Paid</span>
+        <span>₹ {existingPaid.toFixed(2)}</span>
+    </div>
 
-                            {/* Audit Info Card */}
-                            <FormCard title="Audit Information">
-                                <div className="space-y-2 text-xs">
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                            <Clock className="w-3 h-3" />
-                                            Created
-                                        </span>
-                                        <span className="font-medium text-gray-900 dark:text-white">
-                                            {new Date(sale.created_at).toLocaleDateString('en-IN', {
-                                                day: 'numeric',
-                                                month: 'short',
-                                                year: 'numeric'
-                                            })}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                                            <Clock className="w-3 h-3" />
-                                            Last Updated
-                                        </span>
-                                        <span className="font-medium text-gray-900 dark:text-white">
-                                            {new Date(sale.updated_at).toLocaleDateString('en-IN', {
-                                                day: 'numeric',
-                                                month: 'short',
-                                                year: 'numeric'
-                                            })}
-                                        </span>
-                                    </div>
-                                </div>
-                            </FormCard>
-                        </div>
+    {/* Remaining Before Edit */}
+    <div className="flex justify-between text-sm text-red-500 font-semibold">
+        <span>Current Balance</span>
+        <span>₹ {parseFloat(sale.balance_amount).toFixed(2)}</span>
+    </div>
+
+    {/* Additional Payment Input */}
+    {sale.balance_amount > 0 && (
+        <>
+            <div className="pt-2 border-t">
+                <label className="text-xs font-semibold block mb-1">
+                    Additional Payment
+                </label>
+                <input
+                    type="number"
+                    min="0"
+                    max={sale.balance_amount}
+                    value={data.additional_payment}
+                    onChange={(e) => setData('additional_payment', e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border"
+                />
+            </div>
+
+            {/* Payment Method */}
+            <div>
+                <label className="text-xs font-semibold block mb-1">
+                    Payment Method
+                </label>
+                <select
+                    className="w-full px-3 py-2 rounded-lg border"
+                    value={data.payment_method}
+                    onChange={(e) => setData('payment_method', e.target.value)}
+                >
+                    <option value="CASH">Cash</option>
+                    <option value="CARD">Card</option>
+                    <option value="RTGS">RTGS</option>
+                    <option value="UPI">UPI</option>
+                </select>
+            </div>
+
+            {/* Reference ID */}
+            {data.payment_method !== 'CASH' && (
+                <input
+                    type="text"
+                    placeholder="Transaction Reference ID"
+                    value={data.transaction_reference_id}
+                    onChange={(e) => setData('transaction_reference_id', e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border"
+                />
+            )}
+
+            {/* New Balance Preview */}
+            <div className="flex justify-between text-sm font-bold">
+                <span>New Balance</span>
+                <span className={newBalance > 0 ? "text-red-500" : "text-green-600"}>
+                    ₹ {newBalance.toFixed(2)}
+                </span>
+            </div>
+        </>
+    )}
+
+    {/* Status Badge */}
+    <div className="pt-2">
+        <span className={`px-3 py-1 text-xs font-bold rounded-full ${
+            sale.status === 'PAID'
+                ? 'bg-green-100 text-green-700'
+                : sale.status === 'PARTIALLY_PAID'
+                    ? 'bg-yellow-100 text-yellow-700'
+                    : 'bg-red-100 text-red-700'
+        }`}>
+            {sale.status}
+        </span>
+    </div>
+</div>
+
                     </div>
 
                     {/* Form Actions - Full Width */}

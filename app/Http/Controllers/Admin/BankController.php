@@ -23,6 +23,7 @@ class BankController extends Controller
             'account_number' => 'required|string|unique:banks,account_number',
             'ifsc_code' => 'required|string|max:20',
             'account_holder_name' => 'required|string|max:255',
+            'bank_type' => 'required|in:SAVING,CURRENT,OD',
             'branch' => 'nullable|string|max:255',
         ]);
 
@@ -38,6 +39,7 @@ class BankController extends Controller
             'account_number' => 'required|string|unique:banks,account_number,' . $bank->id,
             'ifsc_code' => 'required|string|max:20',
             'account_holder_name' => 'required|string|max:255',
+            'bank_type' => 'required|in:SAVING,CURRENT,OD',
             'branch' => 'nullable|string|max:255',
         ]);
 

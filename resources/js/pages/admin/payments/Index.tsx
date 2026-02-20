@@ -25,18 +25,19 @@ export default function PaymentIndex({ parties, customers, banks, stats }: Props
     const [showMobileDetails, setShowMobileDetails] = useState(false);
 
     const { data, setData, post, processing, reset, errors } = useForm({
-        reference_type: '',
-        reference_id: '',
+        payable_type: '',
+        payable_id: '',
         party_id: '',
         customer_id: '',
         payment_type: 'CASH',
         company_bank_id: '',
-        amount: '',
+        paid_amount: '',
         payment_date: new Date().toISOString().split('T')[0],
         remarks: '',
-        transaction_ref: '',
+        transaction_reference_id: '',
         counterparty_bank_id: '',
         bank_name: '',
+        bank_type: 'CURRENT',
         account_number: '',
         ifsc_code: '',
         account_holder_name: '',
@@ -57,9 +58,9 @@ export default function PaymentIndex({ parties, customers, banks, stats }: Props
             ...prev,
             party_id: id,
             customer_id: '',
-            reference_type: 'PURCHASE',
-            reference_id: '',
-            amount: ''
+            payable_type: 'PURCHASE',
+            payable_id: '',
+            paid_amount: ''
         }));
         const res = await axios.get(route('admin.payments.fetch.party', id));
         setOutstandingList(res.data.invoices);
@@ -72,9 +73,9 @@ export default function PaymentIndex({ parties, customers, banks, stats }: Props
             ...prev,
             customer_id: id,
             party_id: '',
-            reference_type: 'SALE',
-            reference_id: '',
-            amount: ''
+            payable_type: 'SALE',
+            payable_id: '',
+            paid_amount: ''
         }));
         const res = await axios.get(route('admin.payments.fetch.customer', id));
         setOutstandingList(res.data.invoices);
@@ -87,6 +88,7 @@ export default function PaymentIndex({ parties, customers, banks, stats }: Props
             ...prev,
             counterparty_bank_id: bankId,
             bank_name: bank?.bank_name || '',
+            bank_type: bank?.bank_type || 'CURRENT',
             account_number: bank?.account_number || '',
             ifsc_code: bank?.ifsc_code || '',
             account_holder_name: bank?.account_holder_name || '',
@@ -106,19 +108,19 @@ export default function PaymentIndex({ parties, customers, banks, stats }: Props
     };
 
     const handleSelectInvoice = (invoice: any) => {
-        setData('reference_id', invoice.id);
-        setData('amount', invoice.outstanding.toString());
+        setData('payable_id', invoice.id);
+        setData('paid_amount', invoice.outstanding.toString());
         setSelectedInvoice(invoice);
         setShowMobileDetails(true);
     };
 
-    const formatCurrency = (amount: number) => {
+    const formatCurrency = (paid_amount: number) => {
         return new Intl.NumberFormat('en-IN', {
             style: 'currency',
             currency: 'INR',
             minimumFractionDigits: 0,
             maximumFractionDigits: 0,
-        }).format(amount);
+        }).format(paid_amount);
     };
 
     return (
@@ -147,8 +149,8 @@ export default function PaymentIndex({ parties, customers, banks, stats }: Props
                         <button
                             onClick={() => setActiveTab('payable')}
                             className={`flex-1 py-3 rounded-xl font-bold text-xs transition-all ${activeTab === 'payable'
-                                    ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30'
-                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                                ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
                                 }`}
                         >
                             <ArrowUpCircle className="w-4 h-4 inline mr-1" />
@@ -157,8 +159,8 @@ export default function PaymentIndex({ parties, customers, banks, stats }: Props
                         <button
                             onClick={() => setActiveTab('receivable')}
                             className={`flex-1 py-3 rounded-xl font-bold text-xs transition-all ${activeTab === 'receivable'
-                                    ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
-                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                                ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
                                 }`}
                         >
                             <ArrowDownCircle className="w-4 h-4 inline mr-1" />
@@ -245,8 +247,8 @@ export default function PaymentIndex({ parties, customers, banks, stats }: Props
                             <button
                                 onClick={() => setActiveTab('payable')}
                                 className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl font-bold text-sm transition-all ${activeTab === 'payable'
-                                        ? 'bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 shadow-sm border border-gray-100 dark:border-gray-600'
-                                        : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                                    ? 'bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 shadow-sm border border-gray-100 dark:border-gray-600'
+                                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
                                     }`}
                             >
                                 <Wallet className="w-5 h-5" /> Supplier Payments
@@ -254,8 +256,8 @@ export default function PaymentIndex({ parties, customers, banks, stats }: Props
                             <button
                                 onClick={() => setActiveTab('receivable')}
                                 className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl font-bold text-sm transition-all ${activeTab === 'receivable'
-                                        ? 'bg-white dark:bg-gray-700 text-emerald-600 dark:text-emerald-400 shadow-sm border border-gray-100 dark:border-gray-600'
-                                        : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                                    ? 'bg-white dark:bg-gray-700 text-emerald-600 dark:text-emerald-400 shadow-sm border border-gray-100 dark:border-gray-600'
+                                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
                                     }`}
                             >
                                 <Receipt className="w-5 h-5" /> Customer Collections
@@ -272,8 +274,8 @@ export default function PaymentIndex({ parties, customers, banks, stats }: Props
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 lg:w-5 lg:h-5" />
                                     <select
                                         className={`w-full pl-10 pr-4 py-3 lg:py-4 rounded-xl lg:rounded-2xl border-2 appearance-none bg-gray-50 dark:bg-gray-900 dark:text-white text-sm ${activeTab === 'payable'
-                                                ? 'border-amber-100 focus:border-amber-500 focus:ring-amber-500/20'
-                                                : 'border-emerald-100 focus:border-emerald-500 focus:ring-emerald-500/20'
+                                            ? 'border-amber-100 focus:border-amber-500 focus:ring-amber-500/20'
+                                            : 'border-emerald-100 focus:border-emerald-500 focus:ring-emerald-500/20'
                                             }`}
                                         value={activeTab === 'payable' ? data.party_id : data.customer_id}
                                         onChange={(e) => activeTab === 'payable' ? handlePartyChange(e.target.value) : handleCustomerChange(e.target.value)}
@@ -292,7 +294,7 @@ export default function PaymentIndex({ parties, customers, banks, stats }: Props
                                     <div className="lg:hidden space-y-3">
                                         <div className="flex items-center justify-between mb-2">
                                             <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Pending Invoices</p>
-                                            <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${activeTab === 'payable' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                            <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${activeTab === 'payable' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'}`}>
                                                 {outstandingList.length}
                                             </span>
                                         </div>
@@ -304,11 +306,11 @@ export default function PaymentIndex({ parties, customers, banks, stats }: Props
                                             >
                                                 <div className="flex items-center justify-between mb-2">
                                                     <div className="flex items-center gap-2">
-                                                        <div className={`p-2 rounded-lg ${activeTab === 'payable' ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                                                        <div className={`p-2 rounded-lg ${activeTab === 'payable' ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400' : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400'}`}>
                                                             <Receipt className="w-4 h-4" />
                                                         </div>
                                                         <div>
-                                                            <p className="font-bold text-sm">#{item.bill_number || item.invoice_number}</p>
+                                                            <p className="font-bold text-sm dark:text-white">#{item.bill_number || item.invoice_number}</p>
                                                             <p className="text-[10px] text-gray-500">{item.purchase_date || item.sale_date}</p>
                                                         </div>
                                                     </div>
@@ -328,7 +330,7 @@ export default function PaymentIndex({ parties, customers, banks, stats }: Props
                                         <div className="col-span-7 space-y-4">
                                             <div className="flex items-center justify-between mb-2">
                                                 <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Available Invoices</p>
-                                                <span className={`text-[10px] font-bold px-3 py-1 rounded-full ${activeTab === 'payable' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                                <span className={`text-[10px] font-bold px-3 py-1 rounded-full ${activeTab === 'payable' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'}`}>
                                                     {outstandingList.length} Pending
                                                 </span>
                                             </div>
@@ -337,24 +339,24 @@ export default function PaymentIndex({ parties, customers, banks, stats }: Props
                                                     <div
                                                         key={item.id}
                                                         onClick={() => {
-                                                            setData('reference_id', item.id);
-                                                            setData('amount', item.outstanding.toString());
+                                                            setData('payable_id', item.id);
+                                                            setData('paid_amount', item.outstanding.toString());
                                                         }}
-                                                        className={`cursor-pointer p-5 rounded-2xl border-2 transition-all ${data.reference_id === item.id
-                                                                ? (activeTab === 'payable' ? 'border-amber-500 bg-amber-50/50' : 'border-emerald-500 bg-emerald-50/50')
-                                                                : 'border-gray-50 hover:border-gray-200 bg-white'
+                                                        className={`cursor-pointer p-5 rounded-2xl border-2 transition-all ${data.payable_id === item.id
+                                                            ? (activeTab === 'payable' ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-900/20' : 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-900/20')
+                                                            : 'border-gray-50 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 bg-white dark:bg-gray-800'
                                                             }`}
                                                     >
                                                         <div className="flex justify-between items-center">
                                                             <div className="flex items-center gap-4">
-                                                                <div className={`p-3 rounded-xl ${data.reference_id === item.id
-                                                                        ? (activeTab === 'payable' ? 'bg-amber-500 text-white' : 'bg-emerald-500 text-white')
-                                                                        : 'bg-gray-100 text-gray-400'
+                                                                <div className={`p-3 rounded-xl ${data.payable_id === item.id
+                                                                    ? (activeTab === 'payable' ? 'bg-amber-500 text-white' : 'bg-emerald-500 text-white')
+                                                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
                                                                     }`}>
                                                                     <Receipt className="w-6 h-6" />
                                                                 </div>
                                                                 <div>
-                                                                    <p className="font-bold">#{item.bill_number || item.invoice_number}</p>
+                                                                    <p className="font-bold dark:text-white">#{item.bill_number || item.invoice_number}</p>
                                                                     <p className="text-xs text-gray-400">{item.purchase_date || item.sale_date}</p>
                                                                 </div>
                                                             </div>
@@ -485,16 +487,16 @@ function PaymentForm({
                     <input
                         type="number"
                         className={`w-full text-xl lg:text-2xl font-black bg-white dark:bg-gray-800 border-none rounded-xl px-4 py-3 focus:ring-4 ${activeTab === 'payable' ? 'text-amber-600 focus:ring-amber-500/10' : 'text-emerald-600 focus:ring-emerald-500/10'}`}
-                        value={data.amount}
-                        onChange={e => setData('amount', e.target.value)}
+                        value={data.paid_amount}
+                        onChange={e => setData('paid_amount', e.target.value)}
                         placeholder="0.00"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-lg lg:text-xl font-black text-gray-300">₹</span>
                 </div>
-                {errors.amount && (
+                {errors.paid_amount && (
                     <p className="text-rose-500 text-[10px] font-bold ml-2 flex items-center gap-1">
                         <AlertCircle className="w-3 h-3" />
-                        {errors.amount}
+                        {errors.paid_amount}
                     </p>
                 )}
             </div>
@@ -535,7 +537,7 @@ function PaymentForm({
                         >
                             <option value="">Select Account</option>
                             {banks.map((b: any) => (
-                                <option key={b.id} value={b.id}>{b.bank_name} (••••{b.account_number.slice(-4)})</option>
+                                <option key={b.id} value={b.id}>{b.bank_name} [{b.bank_type || 'CURRENT'}] (••••{b.account_number.slice(-4)})</option>
                             ))}
                         </select>
                     </div>
@@ -545,50 +547,59 @@ function PaymentForm({
                             <Landmark className="w-3 h-3" /> Counterparty Bank
                         </label>
                         <select
-                            className="w-full bg-gray-50 dark:bg-gray-900 border-none rounded-lg text-xs font-bold py-2"
+                            className="w-full bg-gray-50 dark:bg-gray-900 border-none rounded-lg text-xs font-bold dark:text-white py-2"
                             value={data.counterparty_bank_id}
                             onChange={(e) => handleCounterpartyBankSelect(e.target.value)}
                         >
                             <option value="">Saved Accounts</option>
                             {counterpartyBanks.map((b: any) => (
-                                <option key={b.id} value={b.id}>{b.bank_name} (••••{b.account_number.slice(-4)})</option>
+                                <option key={b.id} value={b.id}>{b.bank_name} [{b.bank_type || 'CURRENT'}] (••••{b.account_number.slice(-4)})</option>
                             ))}
+                        </select>
+                        <select
+                            className="w-full bg-gray-50 dark:bg-gray-900 border-none rounded-lg text-xs font-bold dark:text-white py-2"
+                            value={data.bank_type}
+                            onChange={e => setData('bank_type', e.target.value)}
+                        >
+                            <option value="SAVING">Saving</option>
+                            <option value="CURRENT">Current</option>
+                            <option value="OD">OD (Overdraft)</option>
                         </select>
                         <div className="grid grid-cols-2 gap-2">
                             <input
                                 placeholder="A/C No"
-                                className="bg-gray-50 dark:bg-gray-900 border-none rounded-lg text-xs font-bold py-2 px-2"
+                                className="bg-gray-50 dark:bg-gray-900 border-none rounded-lg text-xs font-bold dark:text-white py-2 px-2"
                                 value={data.account_number}
                                 onChange={e => setData('account_number', e.target.value)}
                             />
                             <input
                                 placeholder="IFSC"
-                                className="bg-gray-50 dark:bg-gray-900 border-none rounded-lg text-xs font-bold py-2 px-2"
+                                className="bg-gray-50 dark:bg-gray-900 border-none rounded-lg text-xs font-bold dark:text-white py-2 px-2"
                                 value={data.ifsc_code}
                                 onChange={e => setData('ifsc_code', e.target.value)}
                             />
                         </div>
                         <input
                             placeholder="Transaction Reference"
-                            className="w-full bg-gray-50 dark:bg-gray-900 border-none rounded-lg text-xs font-bold py-2 px-2"
-                            value={data.transaction_ref}
-                            onChange={e => setData('transaction_ref', e.target.value)}
+                            className="w-full bg-gray-50 dark:bg-gray-900 border-none rounded-lg text-xs font-bold dark:text-white py-2 px-2"
+                            value={data.transaction_reference_id}
+                            onChange={e => setData('transaction_reference_id', e.target.value)}
                         />
                     </div>
                 </div>
             )}
 
             <button
-                disabled={processing || !data.reference_id}
+                disabled={processing || !data.payable_id}
                 className={`w-full py-4 rounded-xl text-white font-bold text-sm tracking-widest shadow-lg transition-all active:scale-[0.97] disabled:opacity-50 ${activeTab === 'payable'
-                        ? 'bg-gradient-to-r from-amber-600 to-amber-500'
-                        : 'bg-gradient-to-r from-emerald-600 to-emerald-500'
+                    ? 'bg-gradient-to-r from-amber-600 to-amber-500'
+                    : 'bg-gradient-to-r from-emerald-600 to-emerald-500'
                     }`}
             >
                 {processing ? 'Processing...' : (activeTab === 'payable' ? 'Pay Now' : 'Collect Payment')}
             </button>
 
-            {!data.reference_id && (
+            {!data.payable_id && (
                 <div className="flex items-center justify-center gap-1 text-amber-500">
                     <Info className="w-3 h-3" />
                     <p className="text-[9px] font-bold">Select an invoice first</p>

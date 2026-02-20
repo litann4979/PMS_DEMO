@@ -25,19 +25,44 @@ interface Props {
     shifts: Shift[];
     salesPersons: any[];
     nozzles: any[];
+    openingCash: number;
 }
 
-export default function Index({ shifts, salesPersons, nozzles }: Props) {
+export default function Index({ shifts, salesPersons, nozzles, openingCash }: Props) {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
     const [showMobileForm, setShowMobileForm] = useState(false);
     const [selectedShiftDetails, setSelectedShiftDetails] = useState<Shift | null>(null);
     const [showMobileDetails, setShowMobileDetails] = useState(false);
+    // Inside your Index component
+    const [showEODModal, setShowEODModal] = useState(false);
+    const denominations = [500, 200, 100, 50, 20, 10, 5, 2, 1];
+
+    const eodForm = useForm({
+        shift_type: 'DAY',   // 👈 default value
+        breakdown: denominations.map(d => ({ denomination: d, count: 0 }))
+    });
+
+    const calculateEODTotal = () => {
+        return eodForm.data.breakdown.reduce((sum, item) => sum + (item.denomination * item.count), 0);
+    };
+
+    const handleEODSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        eodForm.post(route('admin.day-closing.store'), {
+            onSuccess: () => {
+                setShowEODModal(false);
+                eodForm.reset();
+            }
+        });
+    };
 
     const startForm = useForm({
         sales_person_id: '',
-        nozzle_id: ''
+        nozzle_id: '',
+        start_meter: ''
     });
+
 
     const endForm = useForm({
         shift_id: '',
@@ -103,32 +128,40 @@ export default function Index({ shifts, salesPersons, nozzles }: Props) {
             <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
                 {/* Mobile Header - Sticky */}
                 <div className="sticky top-0 z-20 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 lg:hidden">
-                    <div className="flex items-center justify-between p-4">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-                                <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                    <div className="flex items-center justify-between p-3 sm:p-4">
+                        <div className="flex items-center gap-2 sm:gap-3">
+                            <div className="p-1.5 sm:p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+                                <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
                             </div>
                             <div>
-                                <h1 className="font-bold text-gray-900 dark:text-white">Shifts</h1>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">{activeShiftsCount} active</p>
+                                <h1 className="font-bold text-sm sm:text-base text-gray-900 dark:text-white">Shifts</h1>
+                                <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">{activeShiftsCount} active</p>
                             </div>
                         </div>
-                        <button
-                            onClick={() => setShowMobileForm(!showMobileForm)}
-                            className="p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg text-amber-600"
-                        >
-                            {showMobileForm ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setShowEODModal(true)}
+                                className="p-1.5 sm:p-2 bg-gray-100 dark:bg-gray-700 rounded-lg text-gray-600 dark:text-gray-300"
+                            >
+                                <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                            </button>
+                            <button
+                                onClick={() => setShowMobileForm(!showMobileForm)}
+                                className="p-1.5 sm:p-2 bg-amber-50 dark:bg-amber-900/20 rounded-lg text-amber-600"
+                            >
+                                {showMobileForm ? <X className="w-4 h-4 sm:w-5 sm:h-5" /> : <Plus className="w-4 h-4 sm:w-5 sm:h-5" />}
+                            </button>
+                        </div>
                     </div>
 
                     {/* Mobile Search */}
-                    <div className="px-4 pb-4">
+                    <div className="px-3 pb-3 sm:px-4 sm:pb-4">
                         <div className="relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                             <input
                                 type="text"
                                 placeholder="Search by staff or nozzle..."
-                                className="w-full pl-10 pr-4 py-3 bg-gray-100 dark:bg-gray-700 border-none rounded-xl text-sm dark:text-white focus:ring-2 focus:ring-amber-500/20"
+                                className="w-full pl-10 pr-4 py-2.5 sm:py-3 bg-gray-100 dark:bg-gray-700 border-none rounded-xl text-sm dark:text-white focus:ring-2 focus:ring-amber-500/20"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
@@ -150,7 +183,15 @@ export default function Index({ shifts, salesPersons, nozzles }: Props) {
                                 <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-0.5 sm:mt-1">
                                     Monitor active dispensing sessions and reconcile meter readings.
                                 </p>
+                                <button
+                                    onClick={() => setShowEODModal(true)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl font-bold text-xs uppercase tracking-widest hover:opacity-90 transition-all"
+                                >
+                                    <CheckCircle2 className="w-4 h-4" />
+                                    End of Day
+                                </button>
                             </div>
+
                         </div>
                         <div className="relative group w-full sm:w-auto">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-amber-500 transition-colors" />
@@ -218,22 +259,51 @@ export default function Index({ shifts, salesPersons, nozzles }: Props) {
                                 <h4 className="font-black text-gray-800 dark:text-white uppercase text-xs tracking-tighter">Start New Shift</h4>
                             </div>
                             <div className="space-y-3">
-                                <select
-                                    className="w-full bg-gray-50 dark:bg-gray-900 border-none rounded-xl text-xs font-bold dark:text-white focus:ring-2 focus:ring-amber-500/20 p-3"
-                                    value={startForm.data.sales_person_id}
-                                    onChange={e => startForm.setData('sales_person_id', e.target.value)}
-                                >
-                                    <option value="">Select Staff</option>
-                                    {salesPersons.map(sp => <option key={sp.id} value={sp.id}>{sp.name}</option>)}
-                                </select>
-                                <select
-                                    className="w-full bg-gray-50 dark:bg-gray-900 border-none rounded-xl text-xs font-bold dark:text-white focus:ring-2 focus:ring-amber-500/20 p-3"
-                                    value={startForm.data.nozzle_id}
-                                    onChange={e => startForm.setData('nozzle_id', e.target.value)}
-                                >
-                                    <option value="">Select Nozzle</option>
-                                    {nozzles.map(n => <option key={n.id} value={n.id}>Nozzle #{n.nozzle_number}</option>)}
-                                </select>
+                                <div>
+                                    <select
+                                        className={`w-full bg-gray-50 dark:bg-gray-900 border-none rounded-xl text-xs font-bold dark:text-white focus:ring-2 focus:ring-amber-500/20 p-3 ${startForm.errors.sales_person_id ? 'ring-2 ring-rose-500' : ''}`}
+                                        value={startForm.data.sales_person_id}
+                                        onChange={e => startForm.setData('sales_person_id', e.target.value)}
+                                    >
+                                        <option value="">Select Staff</option>
+                                        {salesPersons.map(sp => <option key={sp.id} value={sp.id}>{sp.name}</option>)}
+                                    </select>
+                                    {startForm.errors.sales_person_id && (
+                                        <p className="text-rose-500 text-[10px] font-bold mt-1 flex items-center gap-1">
+                                            <AlertCircle className="w-3 h-3" /> {startForm.errors.sales_person_id}
+                                        </p>
+                                    )}
+                                </div>
+                                <div>
+                                    <select
+                                        className={`w-full bg-gray-50 dark:bg-gray-900 border-none rounded-xl text-xs font-bold dark:text-white focus:ring-2 focus:ring-amber-500/20 p-3 ${startForm.errors.nozzle_id ? 'ring-2 ring-rose-500' : ''}`}
+                                        value={startForm.data.nozzle_id}
+                                        onChange={e => startForm.setData('nozzle_id', e.target.value)}
+                                    >
+                                        <option value="">Select Nozzle</option>
+                                        {nozzles.map(n => <option key={n.id} value={n.id}>Nozzle #{n.nozzle_number}</option>)}
+                                    </select>
+                                    {startForm.errors.nozzle_id && (
+                                        <p className="text-rose-500 text-[10px] font-bold mt-1 flex items-center gap-1">
+                                            <AlertCircle className="w-3 h-3" /> {startForm.errors.nozzle_id}
+                                        </p>
+                                    )}
+                                </div>
+                                <div>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="Start Meter (Optional)"
+                                        className={`w-full bg-gray-50 dark:bg-gray-900 border-none rounded-xl text-xs font-bold dark:text-white focus:ring-2 focus:ring-amber-500/20 p-3 ${startForm.errors.start_meter ? 'ring-2 ring-rose-500' : ''}`}
+                                        value={startForm.data.start_meter || ''}
+                                        onChange={e => startForm.setData('start_meter', e.target.value)}
+                                    />
+                                    {startForm.errors.start_meter && (
+                                        <p className="text-rose-500 text-[10px] font-bold mt-1 flex items-center gap-1">
+                                            <AlertCircle className="w-3 h-3" /> {startForm.errors.start_meter}
+                                        </p>
+                                    )}
+                                </div>
                                 <button
                                     disabled={startForm.processing}
                                     className="w-full bg-amber-600 hover:bg-amber-500 text-white font-black py-3 rounded-xl shadow-lg transition-all text-xs uppercase tracking-widest disabled:opacity-50"
@@ -317,6 +387,23 @@ export default function Index({ shifts, salesPersons, nozzles }: Props) {
                                             </p>
                                         )}
                                     </div>
+                                    <div>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            placeholder="Start Meter (Optional)"
+                                            className={`w-full bg-gray-50 dark:bg-gray-900 rounded-xl text-xs font-bold dark:text-white focus:ring-2 focus:ring-amber-500/20 p-3 border ${startForm.errors.start_meter ? 'border-rose-500' : 'border-gray-200 dark:border-gray-700'}`}
+                                            value={startForm.data.start_meter || ''}
+                                            onChange={e => startForm.setData('start_meter', e.target.value)}
+                                        />
+                                        {startForm.errors.start_meter && (
+                                            <p className="text-xs text-rose-500 mt-1 flex items-center gap-1">
+                                                <AlertCircle className="w-3 h-3" />
+                                                {startForm.errors.start_meter}
+                                            </p>
+                                        )}
+                                    </div>
+
                                     <button
                                         type="submit"
                                         disabled={startForm.processing}
@@ -551,43 +638,43 @@ export default function Index({ shifts, salesPersons, nozzles }: Props) {
 
                 {/* End Shift Modal - Responsive */}
                 {selectedShift && (
-                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                        <form onSubmit={handleEndShift} className="bg-white dark:bg-gray-800 w-full max-w-md rounded-2xl lg:rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in duration-200">
-                            <div className="p-6 lg:p-8 space-y-6">
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center sm:p-4">
+                        <form onSubmit={handleEndShift} className="bg-white dark:bg-gray-800 w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl lg:rounded-[2rem] shadow-2xl overflow-hidden animate-in zoom-in duration-200">
+                            <div className="p-4 sm:p-5 lg:p-6 space-y-4 sm:space-y-5">
                                 <div className="flex justify-between items-center">
-                                    <h3 className="text-xl font-black text-gray-800 dark:text-white uppercase tracking-tighter">Reconcile Shift</h3>
-                                    <button type="button" onClick={() => setSelectedShift(null)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-400 transition-colors">
-                                        <X className="w-5 h-5" />
+                                    <h3 className="text-base sm:text-lg font-black text-gray-800 dark:text-white uppercase tracking-tighter">Reconcile Shift</h3>
+                                    <button type="button" onClick={() => setSelectedShift(null)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-400 transition-colors">
+                                        <X className="w-4 h-4 sm:w-5 sm:h-5" />
                                     </button>
                                 </div>
 
-                                <div className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-2xl border border-amber-100 dark:border-amber-800/30">
-                                    <p className="text-[10px] font-black text-amber-700 dark:text-amber-300 uppercase mb-2 tracking-widest">Shift Summary</p>
-                                    <div className="space-y-1">
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                                <div className="bg-amber-50 dark:bg-amber-900/20 p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-amber-100 dark:border-amber-800/30">
+                                    <p className="text-[10px] font-black text-amber-700 dark:text-amber-300 uppercase mb-1.5 tracking-widest">Shift Summary</p>
+                                    <div className="space-y-0.5">
+                                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                                             Operator: <span className="font-bold text-gray-800 dark:text-white">{selectedShift.sales_person.name}</span>
                                         </p>
-                                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                                            Opening Reading: <span className="font-mono font-bold text-gray-800 dark:text-white">{selectedShift.start_meter} L</span>
+                                        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                                            Opening: <span className="font-mono font-bold text-gray-800 dark:text-white">{selectedShift.start_meter} L</span>
                                         </p>
                                     </div>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">Final Meter Reading</label>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Final Meter Reading</label>
                                     <input
                                         autoFocus
                                         type="number"
                                         step="0.01"
                                         required
-                                        className={`w-full text-3xl font-black text-amber-600 bg-gray-50 dark:bg-gray-900 border-none rounded-xl lg:rounded-2xl px-4 lg:px-6 py-3 lg:py-4 focus:ring-4 focus:ring-amber-500/10 ${endForm.errors.end_meter ? 'ring-2 ring-rose-500' : ''}`}
+                                        className={`w-full text-2xl sm:text-3xl font-black text-amber-600 bg-gray-50 dark:bg-gray-900 border-none rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 focus:ring-4 focus:ring-amber-500/10 ${endForm.errors.end_meter ? 'ring-2 ring-rose-500' : ''}`}
                                         placeholder="000.00"
                                         value={endForm.data.end_meter}
                                         onChange={e => endForm.setData('end_meter', e.target.value)}
                                     />
 
                                     {endForm.data.end_meter && (
-                                        <div className="flex justify-between px-2 pt-2">
+                                        <div className="flex justify-between px-1 pt-1">
                                             <span className="text-[10px] font-bold text-gray-400 uppercase">Sales Quantity:</span>
                                             <span className={`text-[10px] font-black ${parseFloat(previewQuantity) < 0 ? 'text-rose-500' : 'text-emerald-500'}`}>
                                                 {previewQuantity} Liters
@@ -596,7 +683,7 @@ export default function Index({ shifts, salesPersons, nozzles }: Props) {
                                     )}
 
                                     {endForm.errors.end_meter && (
-                                        <p className="text-rose-500 text-[10px] font-bold uppercase ml-2 mt-1 flex items-center gap-1">
+                                        <p className="text-rose-500 text-[10px] font-bold uppercase ml-1 mt-1 flex items-center gap-1">
                                             <AlertCircle className="w-3 h-3" />
                                             {endForm.errors.end_meter}
                                         </p>
@@ -605,9 +692,80 @@ export default function Index({ shifts, salesPersons, nozzles }: Props) {
 
                                 <button
                                     disabled={endForm.processing}
-                                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-4 lg:py-5 rounded-xl lg:rounded-2xl shadow-xl shadow-emerald-600/20 transition-all active:scale-[0.98] uppercase text-xs tracking-widest disabled:opacity-50"
+                                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3 sm:py-4 rounded-xl shadow-xl shadow-emerald-600/20 transition-all active:scale-[0.98] uppercase text-xs tracking-widest disabled:opacity-50"
                                 >
-                                    {endForm.processing ? 'Finalizing...' : 'Complete & Finalize Shift'}
+                                    {endForm.processing ? 'Finalizing...' : 'Complete & Finalize'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                )}
+
+                {showEODModal && (
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center sm:p-4">
+                        <form onSubmit={handleEODSubmit} className="bg-white dark:bg-gray-800 w-full sm:max-w-sm lg:max-w-md rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden">
+                            <div className="p-4 sm:p-5 lg:p-6 max-h-[90vh] overflow-y-auto">
+                                {/* Drag handle for mobile */}
+                                <div className="flex justify-center mb-3 sm:hidden">
+                                    <div className="w-10 h-1 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+                                </div>
+                                <div className="flex justify-between items-center mb-4 sm:mb-5">
+                                    <h3 className="text-base sm:text-lg font-black uppercase tracking-tighter dark:text-white">Day Closing</h3>
+                                    <button type="button" onClick={() => setShowEODModal(false)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full text-gray-400">
+                                        <X className="w-4 h-4 sm:w-5 sm:h-5" />
+                                    </button>
+                                </div>
+                                <div className="mb-3 sm:mb-4">
+                                    <label className="text-[10px] sm:text-xs font-black uppercase text-gray-500 block mb-1.5">
+                                        Select Shift
+                                    </label>
+                                    <select
+                                        value={eodForm.data.shift_type}
+                                        onChange={(e) => eodForm.setData('shift_type', e.target.value)}
+                                        className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-2.5 sm:p-3 text-sm font-bold dark:text-white focus:ring-2 focus:ring-amber-500/20"
+                                    >
+                                        <option value="DAY">DAY SHIFT (7AM - 9PM)</option>
+                                        <option value="NIGHT">NIGHT SHIFT (9PM - 7AM)</option>
+                                    </select>
+                                    {eodForm.errors.shift_type && (
+                                        <p className="text-rose-500 text-xs mt-1">{eodForm.errors.shift_type}</p>
+                                    )}
+                                </div>
+                                <div className="bg-blue-50 dark:bg-blue-900/20 p-3 sm:p-4 rounded-xl sm:rounded-2xl mb-3 sm:mb-4">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-[10px] sm:text-xs font-black uppercase text-blue-600">Opening Cash</span>
+                                        <span className="text-lg sm:text-xl font-black text-blue-700 dark:text-blue-400">₹{openingCash.toLocaleString()}</span>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3 sm:mb-4">
+                                    {eodForm.data.breakdown.map((item, index) => (
+                                        <div key={item.denomination} className="flex items-center gap-2 bg-gray-50 dark:bg-gray-900 p-2 sm:p-2.5 rounded-xl">
+                                            <span className="w-9 sm:w-10 text-xs sm:text-sm font-bold text-gray-400">₹{item.denomination}</span>
+                                            <input
+                                                type="number"
+                                                className="w-full bg-transparent border-none focus:ring-0 font-bold p-0 text-sm dark:text-white"
+                                                placeholder="0"
+                                                value={item.count || ''}
+                                                onChange={e => {
+                                                    const newBreakdown = [...eodForm.data.breakdown];
+                                                    newBreakdown[index].count = parseInt(e.target.value) || 0;
+                                                    eodForm.setData('breakdown', newBreakdown);
+                                                }}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="bg-amber-50 dark:bg-amber-900/20 p-3 sm:p-4 rounded-xl sm:rounded-2xl mb-3 sm:mb-4">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-[10px] sm:text-xs font-black uppercase text-amber-600">Total Cash Handover</span>
+                                        <span className="text-xl sm:text-2xl font-black text-amber-700 dark:text-amber-400">₹{calculateEODTotal().toLocaleString()}</span>
+                                    </div>
+                                </div>
+                                <button
+                                    disabled={eodForm.processing}
+                                    className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-black py-3 sm:py-4 rounded-xl uppercase text-xs tracking-widest disabled:opacity-50"
+                                >
+                                    {eodForm.processing ? 'Saving...' : 'Confirm Day Closing'}
                                 </button>
                             </div>
                         </form>

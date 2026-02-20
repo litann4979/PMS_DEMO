@@ -439,7 +439,14 @@ export default function SaleIndex({ sales }: any) {
                                                 <div className="flex items-center gap-0.5 sm:gap-1">
                                                     <Fuel className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 dark:text-amber-400" />
                                                     <span className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white">
-                                                        {sale.items?.length || 0} L
+                                                     {
+                                                        sale.items
+                                                            ? sale.items.reduce(
+                                                                (sum: number, item: any) => sum + parseFloat(item.quantity),
+                                                                0
+                                                            ).toFixed(2)
+                                                            : 0
+                                                    } L
                                                     </span>
                                                 </div>
                                             </div>

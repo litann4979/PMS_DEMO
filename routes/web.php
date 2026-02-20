@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\BankController;
 use App\Http\Controllers\Admin\CustomerController;
+use App\Http\Controllers\Admin\DayClosingController;
 use App\Http\Controllers\Admin\NozzleController;
 use App\Http\Controllers\Admin\PartyController;
 use App\Http\Controllers\Admin\PaymentController;
@@ -53,6 +54,9 @@ Route::resource('pumps', PumpController::class);
 Route::get('shifts', [ShiftController::class, 'index'])->name('shifts.index');
 Route::post('shifts/start', [ShiftController::class, 'start'])->name('shifts.start');
 Route::post('shifts/end', [ShiftController::class, 'end'])->name('shifts.end');
+
+//Shift Closing
+Route::post('day-closing', [DayClosingController::class, 'store'])->name('day-closing.store');
 
 });
 
