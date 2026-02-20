@@ -9,6 +9,7 @@ use App\Models\Party;
 use App\Models\StockMovement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 
 class PurchaseController extends Controller
@@ -67,7 +68,7 @@ class PurchaseController extends Controller
                     'movement_type' => 'PURCHASE',
                     'reference_id' => $purchase->id,
                     'quantity_in' => $item['quantity'],
-                    'movement_date' => $validated['purchase_date'],
+                    'movement_date' => Carbon::parse($validated['purchase_date'])->format('Y-m-d'),
                 ]);
             }
         });
@@ -105,13 +106,27 @@ class PurchaseController extends Controller
 
             // 2. Update Purchase Header
             $totalAmount = collect($validated['items'])->sum(fn($item) => $item['quantity'] * $item['purchase_price']);
+
+            
+        $paidAmount = $purchase->paid_amount ?? 0;
+        $balanceAmount = $totalAmount - $paidAmount;
+
+        // Prevent negative balance
+        if ($balanceAmount < 0) {
+            $balanceAmount = 0;
+        }
+
             
             $purchase->update([
                 'party_id' => $validated['party_id'],
                 'purchase_date' => $validated['purchase_date'],
                 'bill_number' => $validated['bill_number'],
                 'total_amount' => $totalAmount,
-            ]);
+                'balance_amount' => $balanceAmount,
+            'status' => $balanceAmount == 0
+                ? 'PAID'
+                : ($paidAmount > 0 ? 'PARTIALLY_PAID' : 'UNPAID'),
+        ]);
 
             // 3. Re-insert Items and Stock Movements
             foreach ($validated['items'] as $item) {
@@ -127,7 +142,7 @@ class PurchaseController extends Controller
                     'movement_type' => 'PURCHASE',
                     'reference_id' => $purchase->id,
                     'quantity_in' => $item['quantity'],
-                    'movement_date' => $validated['purchase_date'],
+                    'movement_date' => Carbon::parse($validated['purchase_date'])->format('Y-m-d'),
                 ]);
             }
         });

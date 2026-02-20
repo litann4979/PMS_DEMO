@@ -7,6 +7,7 @@ import { route } from '@/lib/route';
 interface Bank {
     id: number;
     bank_name: string;
+    bank_type: string;
     account_number: string;
     ifsc_code: string;
     account_holder_name: string;
@@ -20,6 +21,7 @@ export default function BankIndex({ banks }: { banks: Bank[] }) {
 
     const { data, setData, post, put, delete: destroy, reset, processing, errors } = useForm({
         bank_name: '',
+        bank_type: 'CURRENT',
         account_number: '',
         ifsc_code: '',
         account_holder_name: '',
@@ -35,6 +37,7 @@ export default function BankIndex({ banks }: { banks: Bank[] }) {
     const openEditModal = (bank: Bank) => {
         setData({
             bank_name: bank.bank_name,
+            bank_type: bank.bank_type || 'CURRENT',
             account_number: bank.account_number,
             ifsc_code: bank.ifsc_code,
             account_holder_name: bank.account_holder_name,
@@ -63,7 +66,7 @@ export default function BankIndex({ banks }: { banks: Bank[] }) {
                         <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Company Bank Accounts</h2>
                         <p className="text-sm text-gray-500">Manage your own accounts for payments</p>
                     </div>
-                    <button 
+                    <button
                         onClick={openCreateModal}
                         className="flex items-center gap-2 bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-xl font-bold transition-all"
                     >
@@ -80,15 +83,21 @@ export default function BankIndex({ banks }: { banks: Bank[] }) {
                                 </div>
                                 <div className="flex gap-2">
                                     <button onClick={() => openEditModal(bank)} className="p-2 text-gray-400 hover:text-blue-500"><Pencil className="w-4 h-4" /></button>
-                                    <button onClick={() => { if(confirm('Delete this account?')) destroy(route('admin.banks.destroy', bank.id))}} className="p-2 text-gray-400 hover:text-rose-500"><Trash2 className="w-4 h-4" /></button>
+                                    <button onClick={() => { if (confirm('Delete this account?')) destroy(route('admin.banks.destroy', bank.id)) }} className="p-2 text-gray-400 hover:text-rose-500"><Trash2 className="w-4 h-4" /></button>
                                 </div>
                             </div>
                             <div className="mt-4">
-                                <h3 className="font-bold text-lg">{bank.bank_name}</h3>
+                                <div className="flex items-center gap-2">
+                                    <h3 className="font-bold text-lg dark:text-white">{bank.bank_name}</h3>
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${bank.bank_type === 'SAVING' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' :
+                                            bank.bank_type === 'OD' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300' :
+                                                'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'
+                                        }`}>{bank.bank_type || 'CURRENT'}</span>
+                                </div>
                                 <p className="text-sm text-gray-500">{bank.account_holder_name}</p>
                                 <div className="mt-3 space-y-1">
-                                    <div className="flex justify-between text-xs"><span className="text-gray-400">A/C No:</span> <span className="font-mono font-bold">{bank.account_number}</span></div>
-                                    <div className="flex justify-between text-xs"><span className="text-gray-400">IFSC:</span> <span className="font-mono">{bank.ifsc_code}</span></div>
+                                    <div className="flex justify-between text-xs"><span className="text-gray-400">A/C No:</span> <span className="font-mono font-bold dark:text-gray-200">{bank.account_number}</span></div>
+                                    <div className="flex justify-between text-xs"><span className="text-gray-400">IFSC:</span> <span className="font-mono dark:text-gray-200">{bank.ifsc_code}</span></div>
                                 </div>
                             </div>
                         </div>
@@ -111,7 +120,16 @@ export default function BankIndex({ banks }: { banks: Bank[] }) {
                                 </div>
                                 <div>
                                     <label className="text-xs font-bold uppercase text-gray-400">A/C Holder Name</label>
-                                    <input className="w-full rounded-xl border-gray-200 dark:bg-gray-700" value={data.account_holder_name} onChange={e => setData('account_holder_name', e.target.value)} />
+                                    <input className="w-full rounded-xl border-gray-200 dark:bg-gray-700 dark:text-white" value={data.account_holder_name} onChange={e => setData('account_holder_name', e.target.value)} />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold uppercase text-gray-400">Bank Type</label>
+                                    <select className="w-full rounded-xl border-gray-200 dark:bg-gray-700 dark:text-white" value={data.bank_type} onChange={e => setData('bank_type', e.target.value)}>
+                                        <option value="SAVING">Saving</option>
+                                        <option value="CURRENT">Current</option>
+                                        <option value="OD">OD (Overdraft)</option>
+                                    </select>
+                                    {errors.bank_type && <p className="text-rose-500 text-xs mt-1">{errors.bank_type}</p>}
                                 </div>
                                 <div>
                                     <label className="text-xs font-bold uppercase text-gray-400">Account Number</label>
@@ -127,7 +145,7 @@ export default function BankIndex({ banks }: { banks: Bank[] }) {
                                         <input className="w-full rounded-xl border-gray-200 dark:bg-gray-700" value={data.branch} onChange={e => setData('branch', e.target.value)} />
                                     </div>
                                 </div>
-                                <button 
+                                <button
                                     disabled={processing}
                                     className="w-full bg-amber-600 py-3 rounded-xl text-white font-bold hover:bg-amber-500 transition-all mt-4"
                                 >

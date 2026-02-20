@@ -9,6 +9,7 @@ class CustomerBankAccount extends Model
     protected $fillable = [
         'customer_id',
         'bank_name',
+        'bank_type',
         'account_holder_name',
         'account_number',
         'ifsc_code',

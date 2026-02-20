@@ -11,8 +11,24 @@ class Sale extends Model
         'vehicle_id',
         'invoice_number',
         'total_amount',
+        'paid_amount',
+        'balance_amount',
+        'status',
         'sale_date',
     ];
+
+    protected $casts = [
+        'total_amount'   => 'decimal:2',
+        'paid_amount'    => 'decimal:2',
+        'balance_amount' => 'decimal:2',
+        'sale_date'      => 'date',
+    ];
+
+    /*
+    |--------------------------------------------------------------------------
+    | Relationships
+    |--------------------------------------------------------------------------
+    */
 
     public function customer()
     {
@@ -31,7 +47,27 @@ class Sale extends Model
 
     public function payments()
     {
-        return $this->hasMany(Payment::class, 'reference_id')
-                    ->where('reference_type', 'SALE');
+        return $this->morphMany(Payment::class, 'payable');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Helper Methods (Recommended)
+    |--------------------------------------------------------------------------
+    */
+
+    public function isPaid()
+    {
+        return $this->status === 'PAID';
+    }
+
+    public function isPartiallyPaid()
+    {
+        return $this->status === 'PARTIALLY_PAID';
+    }
+
+    public function isUnpaid()
+    {
+        return $this->status === 'UNPAID';
     }
 }

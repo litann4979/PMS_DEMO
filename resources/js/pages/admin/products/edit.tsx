@@ -387,7 +387,7 @@ export default function EditProduct({ product }: any) {
                         </FormCard>
 
                         {/* Stock Management Card */}
-                        <FormCard 
+                        {/* <FormCard 
                             title="Stock Management (Optional)" 
                             icon={<Gauge className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
                         >
@@ -413,7 +413,7 @@ export default function EditProduct({ product }: any) {
                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                                 Set these values to enable low stock alerts and inventory optimization.
                             </p>
-                        </FormCard>
+                        </FormCard> */}
 
                         {/* Description Card */}
                         <FormCard title="Description (Optional)">

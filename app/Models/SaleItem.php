@@ -9,6 +9,7 @@ class SaleItem extends Model
     protected $fillable = [
         'sale_id',
         'product_id',
+        'nozzle_id',
         'quantity',
         'sale_price',
         'subtotal',
@@ -23,4 +24,9 @@ class SaleItem extends Model
     {
         return $this->belongsTo(Product::class);
     }
+
+    public function nozzle()
+{
+    return $this->belongsTo(Nozzle::class);
+}
 }

@@ -11,6 +11,7 @@ interface Item {
 interface ItemsTableProps {
     items: Item[];
     products: Array<{ id: number; name: string; unit: string; price_histories?: Array<{ purchase_price?: number; sale_price?: number }> }>;
+    nozzles?: any[];
     onUpdate: (index: number, field: string, value: any) => void;
     onRemove: (index: number) => void;
     onAdd: () => void;
@@ -22,6 +23,7 @@ interface ItemsTableProps {
 export default function ItemsTable({ 
     items, 
     products, 
+    nozzles = [],
     onUpdate, 
     onRemove, 
     onAdd, 
@@ -54,6 +56,11 @@ export default function ItemsTable({
                     <thead>
                         <tr className="bg-gray-50/50 dark:bg-gray-700/20 border-b border-gray-200 dark:border-gray-700">
                             <th className="px-4 md:px-6 py-4 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Product</th>
+                                {type === 'sale' && (
+        <th className="px-4 md:px-6 py-4 text-xs font-semibold w-36">
+            Nozzle
+        </th>
+    )}
                             <th className="px-4 md:px-6 py-4 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider w-24 md:w-28">Quantity</th>
                             <th className="px-4 md:px-6 py-4 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider w-28 md:w-32">{priceLabel}</th>
                             <th className="px-4 md:px-6 py-4 text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider w-28 md:w-32 text-right">Subtotal</th>
@@ -81,6 +88,26 @@ export default function ItemsTable({
                                             ))}
                                         </select>
                                     </td>
+                                                                            {type === 'sale' && (
+                                        <td className="px-4 md:px-6 py-4">
+                                            <select
+                                                className="w-full min-w-[120px] px-3 py-2.5 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
+                                                value={item.nozzle_id || ''}
+                                                onChange={e => onUpdate(index, 'nozzle_id', e.target.value)}
+                                                disabled={!item.product_id}
+                                            >
+                                                <option value="">Select nozzle</option>
+
+                                                {nozzles
+                                                    .filter((n: any) => n.product_id == item.product_id)
+                                                    .map((n: any) => (
+                                                        <option key={n.id} value={n.id}>
+                                                            Nozzle #{n.nozzle_number}
+                                                        </option>
+                                                    ))}
+                                            </select>
+                                        </td>
+                                        )}
                                     <td className="px-4 md:px-6 py-4">
                                         <input 
                                             type="number" 

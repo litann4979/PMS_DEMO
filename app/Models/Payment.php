@@ -3,57 +3,38 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\PaymentHistory;
 
 class Payment extends Model
 {
     protected $fillable = [
-        'reference_type',
-        'reference_id',
-        'party_id',
-        'customer_id',
+        'payable_type',
+        'payable_id',
+        'paid_amount',
         'payment_type',
-        'bank_id', // old (can remove later)
+        'transaction_reference_id',
+        'status',
         'company_bank_id',
-        'counterparty_bank_id',
         'counterparty_type',
-        'amount',
+        'counterparty_id',
         'payment_date',
         'remarks',
-        'transaction_ref',
+    ];
+
+    protected $casts = [
+        'paid_amount' => 'decimal:2',
+        'payment_date' => 'date',
     ];
 
     /*
     |--------------------------------------------------------------------------
-    | Reference Relations
+    | Polymorphic Relation (SALE or PURCHASE)
     |--------------------------------------------------------------------------
     */
 
-    public function purchase()
+    public function payable()
     {
-        return $this->belongsTo(Purchase::class, 'reference_id')
-            ->where('reference_type', 'PURCHASE');
-    }
-
-    public function sale()
-    {
-        return $this->belongsTo(Sale::class, 'reference_id')
-            ->where('reference_type', 'SALE');
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Direct Party / Customer
-    |--------------------------------------------------------------------------
-    */
-
-    public function party()
-    {
-        return $this->belongsTo(Party::class);
-    }
-
-    public function customer()
-    {
-        return $this->belongsTo(Customer::class);
+        return $this->morphTo();
     }
 
     /*
@@ -77,4 +58,51 @@ class Payment extends Model
     {
         return $this->morphTo();
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Payment History
+    |--------------------------------------------------------------------------
+    */
+
+    public function histories()
+    {
+        return $this->hasMany(PaymentHistory::class);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Auto Audit Logging on Update
+    |--------------------------------------------------------------------------
+    */
+
+    protected static function booted()
+{
+    // On Update
+    static::updating(function ($payment) {
+
+        PaymentHistory::create([
+            'payment_id' => $payment->id,
+            'old_paid_amount' => $payment->getOriginal('paid_amount'),
+            'new_paid_amount' => $payment->paid_amount,
+            'old_status' => $payment->getOriginal('status'),
+            'new_status' => $payment->status,
+            'updated_by' => auth()->id(),
+        ]);
+    });
+
+    // On Create
+    static::created(function ($payment) {
+
+        PaymentHistory::create([
+            'payment_id' => $payment->id,
+            'old_paid_amount' => null,
+            'new_paid_amount' => $payment->paid_amount,
+            'old_status' => null,
+            'new_status' => $payment->status,
+            'updated_by' => auth()->id(),
+        ]);
+    });
+}
+
 }

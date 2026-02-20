@@ -11,7 +11,17 @@ class Purchase extends Model
         'reference_number',
         'bill_number',
         'total_amount',
+        'paid_amount',
+        'balance_amount',
+        'status',
         'purchase_date',
+    ];
+
+    protected $casts = [
+        'total_amount' => 'decimal:2',
+        'paid_amount' => 'decimal:2',
+        'balance_amount' => 'decimal:2',
+        'purchase_date' => 'date',
     ];
 
     public function party()
@@ -26,7 +36,6 @@ class Purchase extends Model
 
     public function payments()
     {
-        return $this->hasMany(Payment::class, 'reference_id')
-                    ->where('reference_type', 'PURCHASE');
+        return $this->morphMany(Payment::class, 'payable');
     }
 }
