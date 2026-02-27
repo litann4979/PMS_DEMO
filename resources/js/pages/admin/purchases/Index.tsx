@@ -4,22 +4,34 @@ import PageHeader from '@/components/admin/page-header';
 import { Head, Link, useForm } from '@inertiajs/react';
 import {
     Plus, Eye, Pencil, Trash2, ShoppingCart, Calendar,
-    FileText, Truck, Package, TrendingUp, Fuel, Receipt,
+    FileText, Truck, Fuel, Package, Receipt,
     ArrowUpRight, Clock, DollarSign, LayoutGrid, List,
     Search, Filter, Download, ChevronRight
 } from 'lucide-react';
 import { route } from '@/lib/route';
 
-export default function PurchaseIndex({ purchases }: any) {
+export default function PurchaseIndex({ purchases, parties }: any) {
     const { delete: destroy } = useForm();
     const [viewType, setViewType] = useState<'table' | 'grid'>('grid');
     const [searchTerm, setSearchTerm] = useState('');
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
+    const [supplierFilter, setSupplierFilter] = useState('');
 
     const handleDelete = (id: number) => {
         if (confirm('Are you sure you want to delete this purchase? Stock will be adjusted accordingly.')) {
             destroy(route('admin.purchases.destroy', { purchase: id }));
         }
     };
+
+    const clearFilters = () => {
+        setDateFrom('');
+        setDateTo('');
+        setSupplierFilter('');
+        setSearchTerm('');
+    };
+
+    const hasActiveFilters = dateFrom || dateTo || supplierFilter;
 
     const getAmountColor = (amount: number) => {
         if (amount > 100000) return 'from-amber-600 to-orange-600';
@@ -42,15 +54,25 @@ export default function PurchaseIndex({ purchases }: any) {
         const now = new Date();
         return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
     }).length;
-    const avgPurchaseAmount = totalPurchases ? totalAmount / totalPurchases : 0;
-    const bulkOrders = purchases.filter((p: any) => parseFloat(p.total_amount) > 100000).length;
 
-    // Filter purchases based on search
-    const filteredPurchases = purchases.filter((purchase: any) => 
-        purchase.party?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        purchase.bill_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        purchase.id?.toString().includes(searchTerm)
-    );
+    // Filter purchases based on search + date + supplier
+    const filteredPurchases = purchases.filter((purchase: any) => {
+        // Search filter
+        const matchesSearch = !searchTerm ||
+            purchase.party?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            purchase.bill_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            purchase.id?.toString().includes(searchTerm);
+
+        // Date range filter
+        const purchaseDate = purchase.purchase_date ? new Date(purchase.purchase_date) : null;
+        const matchesDateFrom = !dateFrom || (purchaseDate && purchaseDate >= new Date(dateFrom));
+        const matchesDateTo = !dateTo || (purchaseDate && purchaseDate <= new Date(dateTo + 'T23:59:59'));
+
+        // Supplier filter
+        const matchesSupplier = !supplierFilter || purchase.party?.id?.toString() === supplierFilter;
+
+        return matchesSearch && matchesDateFrom && matchesDateTo && matchesSupplier;
+    });
 
     return (
         <AppLayout>
@@ -88,24 +110,22 @@ export default function PurchaseIndex({ purchases }: any) {
 
                         {/* Premium View Toggle */}
                         <div className="flex bg-gray-100 dark:bg-gray-700/50 p-1 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-600 self-start sm:self-auto">
-                            <button 
-                                onClick={() => setViewType('table')} 
-                                className={`p-2 sm:p-2.5 rounded-lg transition-all duration-200 ${
-                                    viewType === 'table' 
-                                        ? 'bg-white dark:bg-gray-800 shadow-sm text-amber-600 dark:text-amber-400 border border-gray-200 dark:border-gray-600' 
-                                        : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
-                                }`}
+                            <button
+                                onClick={() => setViewType('table')}
+                                className={`p-2 sm:p-2.5 rounded-lg transition-all duration-200 ${viewType === 'table'
+                                    ? 'bg-white dark:bg-gray-800 shadow-sm text-amber-600 dark:text-amber-400 border border-gray-200 dark:border-gray-600'
+                                    : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
+                                    }`}
                                 title="Table View"
                             >
                                 <List className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                             </button>
-                            <button 
-                                onClick={() => setViewType('grid')} 
-                                className={`p-2 sm:p-2.5 rounded-lg transition-all duration-200 ${
-                                    viewType === 'grid' 
-                                        ? 'bg-white dark:bg-gray-800 shadow-sm text-amber-600 dark:text-amber-400 border border-gray-200 dark:border-gray-600' 
-                                        : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
-                                }`}
+                            <button
+                                onClick={() => setViewType('grid')}
+                                className={`p-2 sm:p-2.5 rounded-lg transition-all duration-200 ${viewType === 'grid'
+                                    ? 'bg-white dark:bg-gray-800 shadow-sm text-amber-600 dark:text-amber-400 border border-gray-200 dark:border-gray-600'
+                                    : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
+                                    }`}
                                 title="Grid View"
                             >
                                 <LayoutGrid className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -120,6 +140,65 @@ export default function PurchaseIndex({ purchases }: any) {
                             <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
                             <span className="whitespace-nowrap">Record Purchase</span>
                         </Link>
+                    </div>
+                </div>
+
+                {/* Filter Bar - Date & Supplier Filters */}
+                <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl border border-gray-100 dark:border-gray-700 p-3 sm:p-4 shadow-sm">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                        <div className="flex items-center gap-1.5 sm:gap-2 text-gray-500 dark:text-gray-400 flex-shrink-0">
+                            <Filter className="w-4 h-4 text-amber-500" />
+                            <span className="text-xs sm:text-sm font-semibold">Filters</span>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 flex-1">
+                            {/* Date From */}
+                            <div className="relative flex-1 sm:max-w-[180px]">
+                                <label className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-medium mb-0.5 block">From Date</label>
+                                <input
+                                    type="date"
+                                    value={dateFrom}
+                                    onChange={(e) => setDateFrom(e.target.value)}
+                                    className="w-full px-3 py-1.5 sm:py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 dark:focus:border-amber-400 transition-all text-gray-900 dark:text-white"
+                                />
+                            </div>
+
+                            {/* Date To */}
+                            <div className="relative flex-1 sm:max-w-[180px]">
+                                <label className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-medium mb-0.5 block">To Date</label>
+                                <input
+                                    type="date"
+                                    value={dateTo}
+                                    onChange={(e) => setDateTo(e.target.value)}
+                                    className="w-full px-3 py-1.5 sm:py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 dark:focus:border-amber-400 transition-all text-gray-900 dark:text-white"
+                                />
+                            </div>
+
+                            {/* Supplier Filter */}
+                            <div className="relative flex-1 sm:max-w-[200px]">
+                                <label className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-medium mb-0.5 block">Supplier</label>
+                                <select
+                                    value={supplierFilter}
+                                    onChange={(e) => setSupplierFilter(e.target.value)}
+                                    className="w-full px-3 py-1.5 sm:py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 dark:focus:border-amber-400 transition-all text-gray-900 dark:text-white appearance-none"
+                                >
+                                    <option value="">All Suppliers</option>
+                                    {parties?.map((party: any) => (
+                                        <option key={party.id} value={party.id}>{party.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Clear Filters */}
+                        {hasActiveFilters && (
+                            <button
+                                onClick={clearFilters}
+                                className="text-xs font-semibold text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 px-3 py-1.5 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-all self-end sm:self-center whitespace-nowrap"
+                            >
+                                Clear All
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -186,48 +265,6 @@ export default function PurchaseIndex({ purchases }: any) {
                     </div>
                 </div>
 
-                {/* Secondary Stats Row - Amber Themed */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-5">
-                    <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-lg sm:rounded-xl border border-amber-100 dark:border-amber-800/30 p-4 sm:p-5 shadow-sm">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-[10px] sm:text-xs text-amber-700 dark:text-amber-300 uppercase tracking-wider font-medium">Average Purchase Value</p>
-                                <p className="text-xl sm:text-2xl font-bold text-amber-800 dark:text-amber-200 mt-0.5 sm:mt-1">
-                                    ₹{avgPurchaseAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                                </p>
-                            </div>
-                            <div className="p-2.5 sm:p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-                                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-lg sm:rounded-xl border border-amber-100 dark:border-amber-800/30 p-4 sm:p-5 shadow-sm">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-[10px] sm:text-xs text-amber-700 dark:text-amber-300 uppercase tracking-wider font-medium">Bulk Orders</p>
-                                <p className="text-xl sm:text-2xl font-bold text-amber-800 dark:text-amber-200 mt-0.5 sm:mt-1">
-                                    {bulkOrders}
-                                </p>
-                            </div>
-                            <div className="p-2.5 sm:p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-                                <Package className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-lg sm:rounded-xl border border-amber-100 dark:border-amber-800/30 p-4 sm:p-5 shadow-sm">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-[10px] sm:text-xs text-amber-700 dark:text-amber-300 uppercase tracking-wider font-medium">Pending Bills</p>
-                                <p className="text-xl sm:text-2xl font-bold text-amber-800 dark:text-amber-200 mt-0.5 sm:mt-1">0</p>
-                            </div>
-                            <div className="p-2.5 sm:p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-                                <Receipt className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
                 {/* Content Area */}
                 {viewType === 'table' ? (
@@ -331,14 +368,14 @@ export default function PurchaseIndex({ purchases }: any) {
                         {filteredPurchases.map((purchase: any, index: number) => {
                             const status = getStatusBadge(purchase.total_amount);
                             return (
-                                <div 
-                                    key={purchase.id} 
+                                <div
+                                    key={purchase.id}
                                     className="group relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl sm:rounded-2xl p-4 sm:p-5 lg:p-6 shadow-sm hover:shadow-xl hover:border-amber-200 dark:hover:border-amber-700 transition-shadow duration-300"
                                     style={{ animationDelay: `${index * 50}ms` }}
                                 >
                                     {/* Premium Gradient Accent */}
                                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 to-amber-400 dark:from-amber-600 dark:to-amber-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left rounded-t-xl sm:rounded-t-2xl" />
-                                    
+
                                     {/* Background Pattern */}
                                     <div className="absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity duration-300">
                                         <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500 rounded-full blur-3xl" />
@@ -354,7 +391,7 @@ export default function PurchaseIndex({ purchases }: any) {
                                                     <FileText className="w-2 h-2 sm:w-3 sm:h-3 text-white" />
                                                 </div>
                                             </div>
-                                            
+
                                             <span className="text-[10px] sm:text-xs font-mono bg-gray-100 dark:bg-gray-700 px-2 sm:px-2.5 py-1 rounded-full text-gray-600 dark:text-gray-300 font-semibold">
                                                 #PUR-{String(purchase.id).padStart(6, '0')}
                                             </span>
@@ -434,8 +471,8 @@ export default function PurchaseIndex({ purchases }: any) {
                                         </div>
 
                                         <div className="flex gap-2">
-                                            <Link 
-                                                href={route('admin.purchases.edit', { purchase: purchase.id })} 
+                                            <Link
+                                                href={route('admin.purchases.edit', { purchase: purchase.id })}
                                                 className="flex-1 text-center text-[10px] sm:text-xs font-bold py-2.5 sm:py-3 bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/30 hover:from-amber-600 hover:to-amber-500 text-amber-700 dark:text-amber-300 hover:text-white rounded-lg sm:rounded-xl transition-all duration-200 uppercase tracking-wider"
                                             >
                                                 Edit Purchase
@@ -481,7 +518,7 @@ export default function PurchaseIndex({ purchases }: any) {
                             {searchTerm ? 'No purchases found' : 'No purchases yet'}
                         </h3>
                         <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-6 sm:mb-8 max-w-md mx-auto px-2">
-                            {searchTerm 
+                            {searchTerm
                                 ? `No purchases match "${searchTerm}". Try a different search term.`
                                 : 'Start tracking your fuel and lubricant procurements by recording your first purchase order.'}
                         </p>

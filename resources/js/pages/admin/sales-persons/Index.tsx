@@ -32,6 +32,7 @@ interface Props {
 
 export default function Index({ salesPersons, stations }: Props) {
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterStation, setFilterStation] = useState('');
     const [editingId, setEditingId] = useState<number | null>(null);
     const [showMobileForm, setShowMobileForm] = useState(false);
     const [selectedStaff, setSelectedStaff] = useState<SalesPerson | null>(null);
@@ -47,11 +48,13 @@ export default function Index({ salesPersons, stations }: Props) {
     const totalStations = stations.length;
     const avgPerStation = totalStations ? (totalStaff / totalStations).toFixed(1) : '0';
 
-    const filteredStaff = salesPersons.filter(sp =>
-        sp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sp.mobile.includes(searchTerm) ||
-        sp.station.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredStaff = salesPersons.filter(sp => {
+        const matchesSearch = sp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            sp.mobile.includes(searchTerm) ||
+            sp.station.name.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesStation = !filterStation || sp.station_id.toString() === filterStation;
+        return matchesSearch && matchesStation;
+    });
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -163,15 +166,37 @@ export default function Index({ salesPersons, stations }: Props) {
                                 </p>
                             </div>
                         </div>
-                        <div className="relative group w-full sm:w-auto">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-amber-500 transition-colors" />
-                            <input
-                                type="text"
-                                placeholder="Quick search..."
-                                className="w-full sm:w-64 pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-700 border-none rounded-xl text-sm dark:text-white focus:ring-2 focus:ring-amber-500/20 transition-all"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+                        <div className="flex items-center gap-3 w-full sm:w-auto">
+                            <div className="relative group">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-amber-500 transition-colors" />
+                                <input
+                                    type="text"
+                                    placeholder="Quick search..."
+                                    className="w-full sm:w-64 pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-700 border-none rounded-xl text-sm dark:text-white focus:ring-2 focus:ring-amber-500/20 transition-all"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+                            <div className="relative">
+                                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                                <select
+                                    value={filterStation}
+                                    onChange={(e) => setFilterStation(e.target.value)}
+                                    className="pl-10 pr-8 py-2 bg-gray-50 dark:bg-gray-700 border-none rounded-xl text-sm dark:text-white focus:ring-2 focus:ring-amber-500/20 transition-all appearance-none cursor-pointer min-w-[160px]"
+                                >
+                                    <option value="">All Stations</option>
+                                    {stations.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                </select>
+                            </div>
+                            {filterStation && (
+                                <button
+                                    onClick={() => setFilterStation('')}
+                                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-400 hover:text-gray-600 transition-colors"
+                                    title="Clear filter"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>

@@ -14,6 +14,10 @@ use App\Http\Controllers\Admin\SalesPersonController;
 use App\Http\Controllers\Admin\ShiftController;
 use App\Http\Controllers\Admin\StationController;
 use App\Http\Controllers\Admin\VehicleController;
+use App\Http\Controllers\Admin\ContraController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\ExpenseController;
+use App\Http\Controllers\Admin\ReportController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
@@ -24,9 +28,7 @@ Route::get('/', function () {
     ]);
 })->name('home');
 
-Route::get('dashboard', function () {
-    return Inertia::render('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+
 
 Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(function () {
     Route::resource('parties', PartyController::class);
@@ -35,6 +37,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::resource('customers', CustomerController::class);
     Route::resource('purchases', PurchaseController::class);
 Route::resource('sales', SaleController::class);
+Route::get('sales/{sale}/invoice', [SaleController::class, 'invoice'])->name('sales.invoice');
 
 
 Route::get('payments/party/{party}', [PaymentController::class, 'fetchPartyOutstanding'])->name('payments.fetch.party');
@@ -57,6 +60,14 @@ Route::post('shifts/end', [ShiftController::class, 'end'])->name('shifts.end');
 
 //Shift Closing
 Route::post('day-closing', [DayClosingController::class, 'store'])->name('day-closing.store');
+Route::post('contras', [ContraController::class, 'store'])->name('contras.store');
+Route::post('expenses', [ExpenseController::class, 'store'])->name('expenses.store');
+
+Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+
+Route::get('reports', [ReportController::class, 'index'])
+    ->name('reports.index');
 
 });
 

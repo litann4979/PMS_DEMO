@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import PageHeader from '@/components/admin/page-header';
 import FormLayout from '@/components/admin/FormLayout';
@@ -10,9 +11,9 @@ import ItemsTable from '@/components/admin/ItemsTable';
 import FormActions from '@/components/admin/FormActions';
 import OrderSummary from '@/components/admin/OrderSummary';
 import { Head, useForm, Link } from '@inertiajs/react';
-import { 
-    Save, User, Car, ShoppingCart, 
-    Calendar, Receipt, X, AlertCircle, 
+import {
+    Save, User, Car, ShoppingCart,
+    Calendar, Receipt, X, AlertCircle,
     Fuel, Users, Clock
 } from 'lucide-react';
 import { route } from '@/lib/route';
@@ -22,21 +23,21 @@ export default function EditSale({ sale, customers, products, nozzles }: any) {
     const parsedItems = sale.items.map((i: any) => ({
         id: i.id,
         product_id: i.product_id,
-         nozzle_id: i.nozzle_id || '',
+        nozzle_id: i.nozzle_id || '',
         quantity: parseFloat(i.quantity) || 0,
         sale_price: parseFloat(i.sale_price) || 0
     }));
 
     const { data, setData, put, processing, errors } = useForm({
-    customer_id: sale.customer_id,
-    vehicle_id: sale.vehicle_id,
-    sale_date: sale.sale_date,
-    items: parsedItems,
-    additional_payment: 0,
-    payment_method: 'CASH',
-    transaction_reference_id: '',
-    notes: sale.notes || ''
-});
+        customer_id: sale.customer_id,
+        vehicle_id: sale.vehicle_id,
+        sale_date: sale.sale_date,
+        items: parsedItems,
+        additional_payment: 0,
+        payment_method: 'CASH',
+        transaction_reference_id: '',
+        notes: sale.notes || ''
+    });
 
 
     const [showSuccess, setShowSuccess] = useState(false);
@@ -49,7 +50,7 @@ export default function EditSale({ sale, customers, products, nozzles }: any) {
 
     const updateItem = (index: number, field: string, value: any) => {
         const newItems = [...data.items];
-        
+
         if (field === 'quantity') {
             newItems[index] = { ...newItems[index], [field]: parseFloat(value) || 0 };
         } else if (field === 'sale_price') {
@@ -57,12 +58,12 @@ export default function EditSale({ sale, customers, products, nozzles }: any) {
         } else {
             newItems[index] = { ...newItems[index], [field]: value };
         }
-        
+
         if (field === 'product_id') {
             const prod = products.find((p: any) => p.id == value);
             newItems[index].sale_price = parseFloat(prod?.price_histories[0]?.sale_price) || 0;
         }
-        
+
         setData('items', newItems);
     };
 
@@ -78,21 +79,45 @@ export default function EditSale({ sale, customers, products, nozzles }: any) {
         return sum + (qty * price);
     }, 0);
     const existingPaid = parseFloat(sale.paid_amount) || 0;
-const additionalPayment = parseFloat(data.additional_payment as any) || 0;
-const newPaidTotal = existingPaid + additionalPayment;
-const newBalance = total - newPaidTotal;
+    const additionalPayment = parseFloat(data.additional_payment as any) || 0;
+    const newPaidTotal = existingPaid + additionalPayment;
+    const newBalance = total - newPaidTotal;
+
+    // Stock validation — for edit, account for the current sale's quantities being restored
+    const getProductStock = (productId: string | number) => {
+        const prod = products.find((p: any) => p.id == productId);
+        const baseStock = prod?.available_stock ?? 0;
+        // Add back old sale quantities for this product (they'll be restored on update)
+        const oldQty = sale.items
+            .filter((i: any) => i.product_id == productId)
+            .reduce((sum: number, i: any) => sum + (parseFloat(i.quantity) || 0), 0);
+        return baseStock + oldQty;
+    };
+
+    const stockWarnings = data.items.map((item) => {
+        if (!item.product_id) return null;
+        const available = getProductStock(item.product_id);
+        const qty = parseFloat(item.quantity as any) || 0;
+        if (qty > available) {
+            const prod = products.find((p: any) => p.id == item.product_id);
+            return `${prod?.name || 'Product'} has only ${Math.round(available * 100) / 100} units available`;
+        }
+        return null;
+    });
+
+    const hasStockIssue = stockWarnings.some((w) => w !== null);
 
 
     const totalItems = data.items.length;
-    const isValid = data.customer_id && data.vehicle_id && data.items.every(i => i.product_id && parseFloat(i.quantity) > 0);
+    const isValid = data.customer_id && data.vehicle_id && !hasStockIssue && data.items.every(i => i.product_id && parseFloat(i.quantity) > 0);
 
     return (
         <AppLayout>
             <Head title={`Edit Invoice ${sale.invoice_number}`} />
-            
+
             <div className="space-y-6">
                 {/* Premium Header with Icon */}
-                <PageHeader 
+                <PageHeader
                     title="Edit Sale"
                     description={`Modifying invoice #${sale.invoice_number}`}
                     icon={<ShoppingCart className="w-6 h-6 text-amber-600 dark:text-amber-400" />}
@@ -120,7 +145,7 @@ const newBalance = total - newPaidTotal;
                         <p className="text-sm font-medium text-emerald-800 dark:text-emerald-200">
                             Sale updated successfully! Changes have been saved.
                         </p>
-                        <button 
+                        <button
                             onClick={() => setShowSuccess(false)}
                             className="ml-auto p-1 hover:bg-emerald-200 dark:hover:bg-emerald-800 rounded-lg transition-colors"
                         >
@@ -129,8 +154,8 @@ const newBalance = total - newPaidTotal;
                     </div>
                 )}
 
-                <FormLayout onSubmit={(e) => { 
-                    e.preventDefault(); 
+                <FormLayout onSubmit={(e) => {
+                    e.preventDefault();
                     put(route('admin.sales.update', { sale: sale.id }), {
                         onSuccess: () => setShowSuccess(true)
                     });
@@ -140,8 +165,8 @@ const newBalance = total - newPaidTotal;
                         {/* Left Column - 2/3 width */}
                         <div className="lg:col-span-2 space-y-6">
                             {/* Customer & Vehicle Information */}
-                            <FormCard 
-                                title="Customer Information" 
+                            <FormCard
+                                title="Customer Information"
                                 icon={<User className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
                             >
                                 <FormGrid cols={2}>
@@ -157,13 +182,13 @@ const newBalance = total - newPaidTotal;
                                         error={errors.customer_id}
                                         options={[
                                             { value: '', label: 'Select customer' },
-                                            ...customers.map((c: any) => ({ 
-                                                value: c.id, 
+                                            ...customers.map((c: any) => ({
+                                                value: c.id,
                                                 label: `${c.name} ${c.company_name ? `- ${c.company_name}` : ''}`
                                             }))
                                         ]}
                                     />
-                                    
+
                                     <FormSelect
                                         label="Vehicle"
                                         required
@@ -174,13 +199,13 @@ const newBalance = total - newPaidTotal;
                                         disabled={!data.customer_id}
                                         options={[
                                             { value: '', label: !data.customer_id ? 'Select customer first' : 'Select vehicle' },
-                                            ...availableVehicles.map((v: any) => ({ 
-                                                value: v.id, 
+                                            ...availableVehicles.map((v: any) => ({
+                                                value: v.id,
                                                 label: `${v.vehicle_number} (${v.vehicle_type})`
                                             }))
                                         ]}
                                     />
-                                    
+
                                     <div className="md:col-span-2">
                                         <FormInput
                                             label="Sale Date"
@@ -198,7 +223,7 @@ const newBalance = total - newPaidTotal;
                             <ItemsTable
                                 items={data.items}
                                 products={products}
-                                nozzles={nozzles} 
+                                nozzles={nozzles}
                                 onUpdate={updateItem}
                                 onRemove={removeItem}
                                 onAdd={addItem}
@@ -206,6 +231,21 @@ const newBalance = total - newPaidTotal;
                                 type="sale"
                                 errors={errors}
                             />
+
+                            {/* Stock Warnings */}
+                            {stockWarnings.some(w => w) && (
+                                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 space-y-2">
+                                    <div className="flex items-center gap-2 text-red-700 dark:text-red-300 font-bold text-sm">
+                                        <AlertTriangle className="w-4 h-4" />
+                                        Insufficient Stock
+                                    </div>
+                                    {stockWarnings.map((warning, i) => warning && (
+                                        <p key={i} className="text-xs text-red-600 dark:text-red-400 ml-6">
+                                            • {warning}
+                                        </p>
+                                    ))}
+                                </div>
+                            )}
 
                             {/* Notes Field */}
                             <FormCard>
@@ -222,92 +262,91 @@ const newBalance = total - newPaidTotal;
 
                         <div className="space-y-3">
 
-    {/* Total */}
-    <div className="flex justify-between text-sm font-semibold">
-        <span>Total Amount</span>
-        <span>₹ {total.toFixed(2)}</span>
-    </div>
+                            {/* Total */}
+                            <div className="flex justify-between text-sm font-semibold">
+                                <span>Total Amount</span>
+                                <span>₹ {total.toFixed(2)}</span>
+                            </div>
 
-    {/* Already Paid */}
-    <div className="flex justify-between text-sm text-green-600 font-semibold">
-        <span>Already Paid</span>
-        <span>₹ {existingPaid.toFixed(2)}</span>
-    </div>
+                            {/* Already Paid */}
+                            <div className="flex justify-between text-sm text-green-600 font-semibold">
+                                <span>Already Paid</span>
+                                <span>₹ {existingPaid.toFixed(2)}</span>
+                            </div>
 
-    {/* Remaining Before Edit */}
-    <div className="flex justify-between text-sm text-red-500 font-semibold">
-        <span>Current Balance</span>
-        <span>₹ {parseFloat(sale.balance_amount).toFixed(2)}</span>
-    </div>
+                            {/* Remaining Before Edit */}
+                            <div className="flex justify-between text-sm text-red-500 font-semibold">
+                                <span>Current Balance</span>
+                                <span>₹ {parseFloat(sale.balance_amount).toFixed(2)}</span>
+                            </div>
 
-    {/* Additional Payment Input */}
-    {sale.balance_amount > 0 && (
-        <>
-            <div className="pt-2 border-t">
-                <label className="text-xs font-semibold block mb-1">
-                    Additional Payment
-                </label>
-                <input
-                    type="number"
-                    min="0"
-                    max={sale.balance_amount}
-                    value={data.additional_payment}
-                    onChange={(e) => setData('additional_payment', e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border"
-                />
-            </div>
+                            {/* Additional Payment Input */}
+                            {sale.balance_amount > 0 && (
+                                <>
+                                    <div className="pt-2 border-t">
+                                        <label className="text-xs font-semibold block mb-1">
+                                            Additional Payment
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max={sale.balance_amount}
+                                            value={data.additional_payment}
+                                            onChange={(e) => setData('additional_payment', e.target.value)}
+                                            className="w-full px-3 py-2 rounded-lg border"
+                                        />
+                                    </div>
 
-            {/* Payment Method */}
-            <div>
-                <label className="text-xs font-semibold block mb-1">
-                    Payment Method
-                </label>
-                <select
-                    className="w-full px-3 py-2 rounded-lg border"
-                    value={data.payment_method}
-                    onChange={(e) => setData('payment_method', e.target.value)}
-                >
-                    <option value="CASH">Cash</option>
-                    <option value="CARD">Card</option>
-                    <option value="RTGS">RTGS</option>
-                    <option value="UPI">UPI</option>
-                </select>
-            </div>
+                                    {/* Payment Method */}
+                                    <div>
+                                        <label className="text-xs font-semibold block mb-1">
+                                            Payment Method
+                                        </label>
+                                        <select
+                                            className="w-full px-3 py-2 rounded-lg border"
+                                            value={data.payment_method}
+                                            onChange={(e) => setData('payment_method', e.target.value)}
+                                        >
+                                            <option value="CASH">Cash</option>
+                                            <option value="CARD">Card</option>
+                                            <option value="RTGS">RTGS</option>
+                                            <option value="UPI">UPI</option>
+                                        </select>
+                                    </div>
 
-            {/* Reference ID */}
-            {data.payment_method !== 'CASH' && (
-                <input
-                    type="text"
-                    placeholder="Transaction Reference ID"
-                    value={data.transaction_reference_id}
-                    onChange={(e) => setData('transaction_reference_id', e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border"
-                />
-            )}
+                                    {/* Reference ID */}
+                                    {data.payment_method !== 'CASH' && (
+                                        <input
+                                            type="text"
+                                            placeholder="Transaction Reference ID"
+                                            value={data.transaction_reference_id}
+                                            onChange={(e) => setData('transaction_reference_id', e.target.value)}
+                                            className="w-full px-3 py-2 rounded-lg border"
+                                        />
+                                    )}
 
-            {/* New Balance Preview */}
-            <div className="flex justify-between text-sm font-bold">
-                <span>New Balance</span>
-                <span className={newBalance > 0 ? "text-red-500" : "text-green-600"}>
-                    ₹ {newBalance.toFixed(2)}
-                </span>
-            </div>
-        </>
-    )}
+                                    {/* New Balance Preview */}
+                                    <div className="flex justify-between text-sm font-bold">
+                                        <span>New Balance</span>
+                                        <span className={newBalance > 0 ? "text-red-500" : "text-green-600"}>
+                                            ₹ {newBalance.toFixed(2)}
+                                        </span>
+                                    </div>
+                                </>
+                            )}
 
-    {/* Status Badge */}
-    <div className="pt-2">
-        <span className={`px-3 py-1 text-xs font-bold rounded-full ${
-            sale.status === 'PAID'
-                ? 'bg-green-100 text-green-700'
-                : sale.status === 'PARTIALLY_PAID'
-                    ? 'bg-yellow-100 text-yellow-700'
-                    : 'bg-red-100 text-red-700'
-        }`}>
-            {sale.status}
-        </span>
-    </div>
-</div>
+                            {/* Status Badge */}
+                            <div className="pt-2">
+                                <span className={`px-3 py-1 text-xs font-bold rounded-full ${sale.status === 'PAID'
+                                        ? 'bg-green-100 text-green-700'
+                                        : sale.status === 'PARTIALLY_PAID'
+                                            ? 'bg-yellow-100 text-yellow-700'
+                                            : 'bg-red-100 text-red-700'
+                                    }`}>
+                                    {sale.status}
+                                </span>
+                            </div>
+                        </div>
 
                     </div>
 

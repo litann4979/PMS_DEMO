@@ -12,6 +12,8 @@ import { route } from '@/lib/route';
 
 interface Shift {
     id: number;
+    sales_person_id: number;
+    nozzle_id: number;
     sales_person: { name: string };
     nozzle: { nozzle_number: string };
     start_meter: string;
@@ -30,6 +32,8 @@ interface Props {
 
 export default function Index({ shifts, salesPersons, nozzles, openingCash }: Props) {
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterStaff, setFilterStaff] = useState('');
+    const [filterNozzle, setFilterNozzle] = useState('');
     const [selectedShift, setSelectedShift] = useState<Shift | null>(null);
     const [showMobileForm, setShowMobileForm] = useState(false);
     const [selectedShiftDetails, setSelectedShiftDetails] = useState<Shift | null>(null);
@@ -74,10 +78,13 @@ export default function Index({ shifts, salesPersons, nozzles, openingCash }: Pr
     const totalVolume = shifts.reduce((sum, s) => sum + parseFloat(s.total_quantity || '0'), 0).toFixed(2);
     const totalRevenue = shifts.reduce((sum, s) => sum + parseFloat(s.total_amount || '0'), 0).toFixed(2);
 
-    const filteredShifts = shifts.filter(s =>
-        s.sales_person.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.nozzle.nozzle_number.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredShifts = shifts.filter(s => {
+        const matchesSearch = s.sales_person.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            s.nozzle.nozzle_number.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesStaff = !filterStaff || s.sales_person_id.toString() === filterStaff;
+        const matchesNozzle = !filterNozzle || s.nozzle_id.toString() === filterNozzle;
+        return matchesSearch && matchesStaff && matchesNozzle;
+    });
 
     const handleStartShift = (e: React.FormEvent) => {
         e.preventDefault();
@@ -193,15 +200,48 @@ export default function Index({ shifts, salesPersons, nozzles, openingCash }: Pr
                             </div>
 
                         </div>
-                        <div className="relative group w-full sm:w-auto">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-amber-500 transition-colors" />
-                            <input
-                                type="text"
-                                placeholder="Quick search..."
-                                className="w-full sm:w-64 pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-700 border-none rounded-xl text-sm dark:text-white focus:ring-2 focus:ring-amber-500/20 transition-all"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+                        <div className="flex items-center gap-3 w-full sm:w-auto">
+                            <div className="relative group">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-amber-500 transition-colors" />
+                                <input
+                                    type="text"
+                                    placeholder="Quick search..."
+                                    className="w-full sm:w-64 pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-700 border-none rounded-xl text-sm dark:text-white focus:ring-2 focus:ring-amber-500/20 transition-all"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+                            <div className="relative">
+                                <UserCircle2 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                                <select
+                                    value={filterStaff}
+                                    onChange={(e) => setFilterStaff(e.target.value)}
+                                    className="pl-10 pr-8 py-2 bg-gray-50 dark:bg-gray-700 border-none rounded-xl text-sm dark:text-white focus:ring-2 focus:ring-amber-500/20 transition-all appearance-none cursor-pointer min-w-[150px]"
+                                >
+                                    <option value="">All Staff</option>
+                                    {salesPersons.map(sp => <option key={sp.id} value={sp.id}>{sp.name}</option>)}
+                                </select>
+                            </div>
+                            <div className="relative">
+                                <Fuel className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                                <select
+                                    value={filterNozzle}
+                                    onChange={(e) => setFilterNozzle(e.target.value)}
+                                    className="pl-10 pr-8 py-2 bg-gray-50 dark:bg-gray-700 border-none rounded-xl text-sm dark:text-white focus:ring-2 focus:ring-amber-500/20 transition-all appearance-none cursor-pointer min-w-[150px]"
+                                >
+                                    <option value="">All Nozzles</option>
+                                    {nozzles.map(n => <option key={n.id} value={n.id}>Nozzle #{n.nozzle_number}</option>)}
+                                </select>
+                            </div>
+                            {(filterStaff || filterNozzle) && (
+                                <button
+                                    onClick={() => { setFilterStaff(''); setFilterNozzle(''); }}
+                                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-400 hover:text-gray-600 transition-colors"
+                                    title="Clear filters"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import PageHeader from '@/components/admin/page-header';
 import FormLayout from '@/components/admin/FormLayout';
@@ -13,17 +14,17 @@ import { Head, useForm } from '@inertiajs/react';
 import { ShoppingBag, User, Car, Calendar, Fuel, Users } from 'lucide-react';
 import { route } from '@/lib/route';
 
-export default function CreateSale({ customers, products,nozzles }: any) {
-  const { data, setData, post, processing, errors } = useForm({
-    customer_id: '',
-    vehicle_id: '',
-    sale_date: new Date().toISOString().split('T')[0],
-    items: [{ product_id: '', nozzle_id: '', quantity: 1, sale_price: 0 }],
-    payment_method: 'CASH',
-    paid_amount: 0,
-    transaction_reference_id: '',
-    notes: ''
-});
+export default function CreateSale({ customers, products, nozzles }: any) {
+    const { data, setData, post, processing, errors } = useForm({
+        customer_id: '',
+        vehicle_id: '',
+        sale_date: new Date().toISOString().split('T')[0],
+        items: [{ product_id: '', nozzle_id: '', quantity: 1, sale_price: 0 }],
+        payment_method: 'CASH',
+        paid_amount: 0,
+        transaction_reference_id: '',
+        notes: ''
+    });
 
 
     const [showSuccess, setShowSuccess] = useState(false);
@@ -37,12 +38,12 @@ export default function CreateSale({ customers, products,nozzles }: any) {
     const updateItem = (index: number, field: string, value: any) => {
         const newItems = [...data.items];
         newItems[index] = { ...newItems[index], [field]: field === 'quantity' || field === 'sale_price' ? parseFloat(value) || 0 : value };
-        
+
         if (field === 'product_id') {
             const prod = products.find((p: any) => p.id == value);
             newItems[index].sale_price = parseFloat(prod?.price_histories[0]?.sale_price) || 0;
         }
-        
+
         setData('items', newItems);
     };
 
@@ -58,26 +59,45 @@ export default function CreateSale({ customers, products,nozzles }: any) {
         return sum + (qty * price);
     }, 0);
 
-    const paidAmount = parseFloat(data.paid_amount as any) || 0;
-const balanceAmount = total - paidAmount;
+    // Stock validation helper
+    const getProductStock = (productId: string | number) => {
+        const prod = products.find((p: any) => p.id == productId);
+        return prod?.available_stock ?? 0;
+    };
 
-    
+    const stockWarnings = data.items.map((item, index) => {
+        if (!item.product_id) return null;
+        const available = getProductStock(item.product_id);
+        const qty = parseFloat(item.quantity as any) || 0;
+        if (qty > available) {
+            const prod = products.find((p: any) => p.id == item.product_id);
+            return `${prod?.name || 'Product'} has only ${available} units in stock`;
+        }
+        return null;
+    });
+
+    const hasStockIssue = stockWarnings.some((w) => w !== null);
+
+    const paidAmount = parseFloat(data.paid_amount as any) || 0;
+    const balanceAmount = total - paidAmount;
+
+
     const totalItems = data.items.length;
-    const isValid = data.customer_id && data.vehicle_id && data.items.every(i => i.product_id && parseFloat(i.quantity as any) > 0);
+    const isValid = data.customer_id && data.vehicle_id && !hasStockIssue && data.items.every(i => i.product_id && parseFloat(i.quantity as any) > 0);
 
     return (
         <AppLayout>
             <Head title="Point of Sale" />
-            
+
             <div className="space-y-6">
-                <PageHeader 
-                    title="New Sale" 
+                <PageHeader
+                    title="New Sale"
                     description="Create a fuel sale invoice and process payment."
                     icon={<ShoppingBag className="w-6 h-6 text-amber-600 dark:text-amber-400" />}
                 />
 
-                <FormLayout onSubmit={(e) => { 
-                    e.preventDefault(); 
+                <FormLayout onSubmit={(e) => {
+                    e.preventDefault();
                     post(route('admin.sales.store'), {
                         onSuccess: () => setShowSuccess(true)
                     });
@@ -87,8 +107,8 @@ const balanceAmount = total - paidAmount;
                         {/* Left Column - 2/3 width */}
                         <div className="lg:col-span-2 space-y-6">
                             {/* Customer & Vehicle Information */}
-                            <FormCard 
-                                title="Customer Information" 
+                            <FormCard
+                                title="Customer Information"
                                 icon={<User className="w-4 h-4 text-amber-600 dark:text-amber-400" />}
                             >
                                 <FormGrid cols={2}>
@@ -104,13 +124,13 @@ const balanceAmount = total - paidAmount;
                                         error={errors.customer_id}
                                         options={[
                                             { value: '', label: 'Select customer' },
-                                            ...customers.map((c: any) => ({ 
-                                                value: c.id, 
+                                            ...customers.map((c: any) => ({
+                                                value: c.id,
                                                 label: `${c.name} ${c.company_name ? `- ${c.company_name}` : ''}`
                                             }))
                                         ]}
                                     />
-                                    
+
                                     <FormSelect
                                         label="Vehicle"
                                         required
@@ -121,13 +141,13 @@ const balanceAmount = total - paidAmount;
                                         disabled={!data.customer_id}
                                         options={[
                                             { value: '', label: !data.customer_id ? 'Select customer first' : 'Select vehicle' },
-                                            ...availableVehicles.map((v: any) => ({ 
-                                                value: v.id, 
+                                            ...availableVehicles.map((v: any) => ({
+                                                value: v.id,
                                                 label: `${v.vehicle_number} (${v.vehicle_type})`
                                             }))
                                         ]}
                                     />
-                                    
+
                                     <div className="md:col-span-2">
                                         <FormInput
                                             label="Sale Date"
@@ -154,6 +174,21 @@ const balanceAmount = total - paidAmount;
                                 errors={errors}
                             />
 
+                            {/* Stock Warnings */}
+                            {stockWarnings.some(w => w) && (
+                                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 space-y-2">
+                                    <div className="flex items-center gap-2 text-red-700 dark:text-red-300 font-bold text-sm">
+                                        <AlertTriangle className="w-4 h-4" />
+                                        Insufficient Stock
+                                    </div>
+                                    {stockWarnings.map((warning, i) => warning && (
+                                        <p key={i} className="text-xs text-red-600 dark:text-red-400 ml-6">
+                                            • {warning}
+                                        </p>
+                                    ))}
+                                </div>
+                            )}
+
                             {/* Notes Field */}
                             <FormCard>
                                 <FormInput
@@ -175,75 +210,74 @@ const balanceAmount = total - paidAmount;
                                 itemsCount={totalItems}
                                 className="sticky top-6"
                             >
-                              {/* Payment Section */}
-<div className="pt-4 space-y-4">
+                                {/* Payment Section */}
+                                <div className="pt-4 space-y-4">
 
-    <label className="text-xs font-semibold text-amber-700 dark:text-amber-300 uppercase tracking-wider">
-        Payment Method
-    </label>
+                                    <label className="text-xs font-semibold text-amber-700 dark:text-amber-300 uppercase tracking-wider">
+                                        Payment Method
+                                    </label>
 
-    <div className="grid grid-cols-2 gap-3">
-        {['CASH', 'CARD', 'RTGS', 'UPI'].map((method) => (
-            <label
-                key={method}
-                className={`flex items-center justify-center px-4 py-3 rounded-xl border cursor-pointer transition-all ${
-                    data.payment_method === method
-                        ? 'bg-amber-600 border-amber-600 text-white'
-                        : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
-                }`}
-            >
-                <input
-                    type="radio"
-                    value={method}
-                    checked={data.payment_method === method}
-                    onChange={(e) => setData('payment_method', e.target.value)}
-                    className="sr-only"
-                />
-                <span className="text-xs font-bold uppercase">
-                    {method}
-                </span>
-            </label>
-        ))}
-    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {['CASH', 'CARD', 'RTGS', 'UPI'].map((method) => (
+                                            <label
+                                                key={method}
+                                                className={`flex items-center justify-center px-4 py-3 rounded-xl border cursor-pointer transition-all ${data.payment_method === method
+                                                        ? 'bg-amber-600 border-amber-600 text-white'
+                                                        : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                                                    }`}
+                                            >
+                                                <input
+                                                    type="radio"
+                                                    value={method}
+                                                    checked={data.payment_method === method}
+                                                    onChange={(e) => setData('payment_method', e.target.value)}
+                                                    className="sr-only"
+                                                />
+                                                <span className="text-xs font-bold uppercase">
+                                                    {method}
+                                                </span>
+                                            </label>
+                                        ))}
+                                    </div>
 
-    {/* Paid Amount Input */}
-    <div>
-        <label className="text-xs font-semibold block mb-1">
-            Amount Paid
-        </label>
-        <input
-            type="number"
-            min="0"
-            max={total}
-            value={data.paid_amount}
-            onChange={(e) => setData('paid_amount', e.target.value)}
-            className="w-full px-3 py-2 rounded-lg border"
-        />
-    </div>
+                                    {/* Paid Amount Input */}
+                                    <div>
+                                        <label className="text-xs font-semibold block mb-1">
+                                            Amount Paid
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max={total}
+                                            value={data.paid_amount}
+                                            onChange={(e) => setData('paid_amount', e.target.value)}
+                                            className="w-full px-3 py-2 rounded-lg border"
+                                        />
+                                    </div>
 
-    {/* Pending Amount Display */}
-    <div className="flex justify-between text-sm font-semibold">
-        <span>Pending Amount:</span>
-        <span className={balanceAmount > 0 ? "text-red-500" : "text-green-600"}>
-            ₹ {balanceAmount.toFixed(2)}
-        </span>
-    </div>
+                                    {/* Pending Amount Display */}
+                                    <div className="flex justify-between text-sm font-semibold">
+                                        <span>Pending Amount:</span>
+                                        <span className={balanceAmount > 0 ? "text-red-500" : "text-green-600"}>
+                                            ₹ {balanceAmount.toFixed(2)}
+                                        </span>
+                                    </div>
 
-    {/* Transaction Reference */}
-    {data.payment_method !== 'CASH' && (
-        <div>
-            <label className="text-xs font-semibold block mb-1">
-                Transaction Reference ID
-            </label>
-            <input
-                type="text"
-                value={data.transaction_reference_id}
-                onChange={(e) => setData('transaction_reference_id', e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border"
-            />
-        </div>
-    )}
-</div>
+                                    {/* Transaction Reference */}
+                                    {data.payment_method !== 'CASH' && (
+                                        <div>
+                                            <label className="text-xs font-semibold block mb-1">
+                                                Transaction Reference ID
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={data.transaction_reference_id}
+                                                onChange={(e) => setData('transaction_reference_id', e.target.value)}
+                                                className="w-full px-3 py-2 rounded-lg border"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
 
                             </OrderSummary>
 

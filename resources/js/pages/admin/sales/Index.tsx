@@ -2,41 +2,55 @@ import { useState } from 'react';
 import AppLayout from '@/layouts/app-layout';
 import PageHeader from '@/components/admin/page-header';
 import { Head, Link } from '@inertiajs/react';
-import { 
-    ShoppingBag, Pencil, Trash2, Printer, Search, 
+import {
+    ShoppingBag, Pencil, Trash2, Printer, Search,
     LayoutGrid, List, Eye, Calendar, Users, Car,
     TrendingUp, DollarSign, FileText, Clock, Fuel,
-    ArrowUpRight, CreditCard, Download, ChevronRight
+    ArrowUpRight, CreditCard, Download, ChevronRight, Filter
 } from 'lucide-react';
 import { route } from '@/lib/route';
 
-export default function SaleIndex({ sales }: any) {
+export default function SaleIndex({ sales, customers, vehicles }: any) {
     const [viewType, setViewType] = useState<'table' | 'grid'>('grid');
     const [searchTerm, setSearchTerm] = useState('');
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
+    const [customerFilter, setCustomerFilter] = useState('');
+    const [vehicleFilter, setVehicleFilter] = useState('');
 
     // Calculate stats
     const totalSales = sales.length;
     const totalAmount = sales.reduce((sum: number, s: any) => sum + parseFloat(s.total_amount), 0);
     const totalCustomers = new Set(sales.map((s: any) => s.customer?.id)).size;
     const totalVehicles = new Set(sales.map((s: any) => s.vehicle?.id)).size;
-    const avgSaleValue = totalSales ? totalAmount / totalSales : 0;
-    
-    // Today's sales
-    const today = new Date().toDateString();
-    const todaySales = sales.filter((s: any) => 
-        new Date(s.sale_date).toDateString() === today
-    ).length;
-    const todayAmount = sales.filter((s: any) => 
-        new Date(s.sale_date).toDateString() === today
-    ).reduce((sum: number, s: any) => sum + parseFloat(s.total_amount), 0);
 
-    // Filter sales based on search
-    const filteredSales = sales.filter((sale: any) => 
-        sale.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sale.customer?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sale.vehicle?.vehicle_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        sale.id?.toString().includes(searchTerm)
-    );
+    const clearFilters = () => {
+        setDateFrom('');
+        setDateTo('');
+        setCustomerFilter('');
+        setVehicleFilter('');
+        setSearchTerm('');
+    };
+
+    const hasActiveFilters = dateFrom || dateTo || customerFilter || vehicleFilter;
+
+    // Filter sales based on search + date + customer + vehicle
+    const filteredSales = sales.filter((sale: any) => {
+        const matchesSearch = !searchTerm ||
+            sale.invoice_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            sale.customer?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            sale.vehicle?.vehicle_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            sale.id?.toString().includes(searchTerm);
+
+        const saleDate = sale.sale_date ? new Date(sale.sale_date) : null;
+        const matchesDateFrom = !dateFrom || (saleDate && saleDate >= new Date(dateFrom));
+        const matchesDateTo = !dateTo || (saleDate && saleDate <= new Date(dateTo + 'T23:59:59'));
+
+        const matchesCustomer = !customerFilter || sale.customer?.id?.toString() === customerFilter;
+        const matchesVehicle = !vehicleFilter || sale.vehicle?.id?.toString() === vehicleFilter;
+
+        return matchesSearch && matchesDateFrom && matchesDateTo && matchesCustomer && matchesVehicle;
+    });
 
     const getAmountColor = (amount: number) => {
         if (amount > 10000) return 'from-amber-600 to-orange-600';
@@ -53,7 +67,7 @@ export default function SaleIndex({ sales }: any) {
     return (
         <AppLayout>
             <Head title="Sales Ledger" />
-            
+
             <div className="space-y-4 sm:space-y-6">
                 {/* Premium Header with Icon and Right-aligned Button - Mobile Responsive */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl border border-gray-100 dark:border-gray-700 p-4 sm:p-6 shadow-sm gap-4 sm:gap-0">
@@ -86,24 +100,22 @@ export default function SaleIndex({ sales }: any) {
 
                         {/* Premium View Toggle */}
                         <div className="flex bg-gray-100 dark:bg-gray-700/50 p-1 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-600 self-start sm:self-auto">
-                            <button 
-                                onClick={() => setViewType('table')} 
-                                className={`p-2 sm:p-2.5 rounded-lg transition-all duration-200 ${
-                                    viewType === 'table' 
-                                        ? 'bg-white dark:bg-gray-800 shadow-sm text-amber-600 dark:text-amber-400 border border-gray-200 dark:border-gray-600' 
-                                        : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
-                                }`}
+                            <button
+                                onClick={() => setViewType('table')}
+                                className={`p-2 sm:p-2.5 rounded-lg transition-all duration-200 ${viewType === 'table'
+                                    ? 'bg-white dark:bg-gray-800 shadow-sm text-amber-600 dark:text-amber-400 border border-gray-200 dark:border-gray-600'
+                                    : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
+                                    }`}
                                 title="Table View"
                             >
                                 <List className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                             </button>
-                            <button 
-                                onClick={() => setViewType('grid')} 
-                                className={`p-2 sm:p-2.5 rounded-lg transition-all duration-200 ${
-                                    viewType === 'grid' 
-                                        ? 'bg-white dark:bg-gray-800 shadow-sm text-amber-600 dark:text-amber-400 border border-gray-200 dark:border-gray-600' 
-                                        : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
-                                }`}
+                            <button
+                                onClick={() => setViewType('grid')}
+                                className={`p-2 sm:p-2.5 rounded-lg transition-all duration-200 ${viewType === 'grid'
+                                    ? 'bg-white dark:bg-gray-800 shadow-sm text-amber-600 dark:text-amber-400 border border-gray-200 dark:border-gray-600'
+                                    : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
+                                    }`}
                                 title="Grid View"
                             >
                                 <LayoutGrid className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -118,6 +130,80 @@ export default function SaleIndex({ sales }: any) {
                             <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
                             <span className="whitespace-nowrap">New Sale</span>
                         </Link>
+                    </div>
+                </div>
+
+                {/* Filter Bar - Date, Customer & Vehicle Filters */}
+                <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl border border-gray-100 dark:border-gray-700 p-3 sm:p-4 shadow-sm">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                        <div className="flex items-center gap-1.5 sm:gap-2 text-gray-500 dark:text-gray-400 flex-shrink-0">
+                            <Filter className="w-4 h-4 text-amber-500" />
+                            <span className="text-xs sm:text-sm font-semibold">Filters</span>
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 flex-1">
+                            {/* Date From */}
+                            <div className="relative flex-1 sm:max-w-[160px]">
+                                <label className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-medium mb-0.5 block">From Date</label>
+                                <input
+                                    type="date"
+                                    value={dateFrom}
+                                    onChange={(e) => setDateFrom(e.target.value)}
+                                    className="w-full px-3 py-1.5 sm:py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 dark:focus:border-amber-400 transition-all text-gray-900 dark:text-white"
+                                />
+                            </div>
+
+                            {/* Date To */}
+                            <div className="relative flex-1 sm:max-w-[160px]">
+                                <label className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-medium mb-0.5 block">To Date</label>
+                                <input
+                                    type="date"
+                                    value={dateTo}
+                                    onChange={(e) => setDateTo(e.target.value)}
+                                    className="w-full px-3 py-1.5 sm:py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 dark:focus:border-amber-400 transition-all text-gray-900 dark:text-white"
+                                />
+                            </div>
+
+                            {/* Customer Filter */}
+                            <div className="relative flex-1 sm:max-w-[180px]">
+                                <label className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-medium mb-0.5 block">Customer</label>
+                                <select
+                                    value={customerFilter}
+                                    onChange={(e) => setCustomerFilter(e.target.value)}
+                                    className="w-full px-3 py-1.5 sm:py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 dark:focus:border-amber-400 transition-all text-gray-900 dark:text-white appearance-none"
+                                >
+                                    <option value="">All Customers</option>
+                                    {customers?.map((c: any) => (
+                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {/* Vehicle Filter */}
+                            <div className="relative flex-1 sm:max-w-[180px]">
+                                <label className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-medium mb-0.5 block">Vehicle</label>
+                                <select
+                                    value={vehicleFilter}
+                                    onChange={(e) => setVehicleFilter(e.target.value)}
+                                    className="w-full px-3 py-1.5 sm:py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 dark:focus:border-amber-400 transition-all text-gray-900 dark:text-white appearance-none"
+                                >
+                                    <option value="">All Vehicles</option>
+                                    {vehicles?.map((v: any) => (
+                                        <option key={v.id} value={v.id}>{v.vehicle_number}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Clear Filters */}
+                        {hasActiveFilters && (
+                            <button
+                                onClick={clearFilters}
+                                className="text-xs font-semibold text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 px-3 py-1.5 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-all self-end sm:self-center whitespace-nowrap"
+                            >
+                                Clear All
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -176,57 +262,6 @@ export default function SaleIndex({ sales }: any) {
                                 <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider font-medium">Vehicles</p>
                                 <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{totalVehicles}</p>
                                 <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-0.5 sm:mt-1">Served</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Secondary Stats Row - Today's Performance - Mobile Responsive */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-5">
-                    <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-lg sm:rounded-xl border border-amber-100 dark:border-amber-800/30 p-4 sm:p-5 shadow-sm">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-[10px] sm:text-xs text-amber-700 dark:text-amber-300 uppercase tracking-wider font-medium">Today's Sales</p>
-                                <p className="text-xl sm:text-2xl font-bold text-amber-800 dark:text-amber-200 mt-0.5 sm:mt-1">
-                                    {todaySales}
-                                </p>
-                                <p className="text-[10px] sm:text-xs text-amber-600 dark:text-amber-400 mt-0.5 sm:mt-1 flex items-center gap-0.5 sm:gap-1">
-                                    <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                                    {todaySales} transactions today
-                                </p>
-                            </div>
-                            <div className="p-2.5 sm:p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-                                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-lg sm:rounded-xl border border-amber-100 dark:border-amber-800/30 p-4 sm:p-5 shadow-sm">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-[10px] sm:text-xs text-amber-700 dark:text-amber-300 uppercase tracking-wider font-medium">Today's Revenue</p>
-                                <p className="text-xl sm:text-2xl font-bold text-amber-800 dark:text-amber-200 mt-0.5 sm:mt-1">
-                                    ₹{todayAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                                </p>
-                                <p className="text-[10px] sm:text-xs text-amber-600 dark:text-amber-400 mt-0.5 sm:mt-1">Collected today</p>
-                            </div>
-                            <div className="p-2.5 sm:p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-                                <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-lg sm:rounded-xl border border-amber-100 dark:border-amber-800/30 p-4 sm:p-5 shadow-sm sm:col-span-2 lg:col-span-1">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-[10px] sm:text-xs text-amber-700 dark:text-amber-300 uppercase tracking-wider font-medium">Average Sale</p>
-                                <p className="text-xl sm:text-2xl font-bold text-amber-800 dark:text-amber-200 mt-0.5 sm:mt-1">
-                                    ₹{avgSaleValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
-                                </p>
-                                <p className="text-[10px] sm:text-xs text-amber-600 dark:text-amber-400 mt-0.5 sm:mt-1">Per transaction</p>
-                            </div>
-                            <div className="p-2.5 sm:p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-                                <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
                             </div>
                         </div>
                     </div>
@@ -314,6 +349,13 @@ export default function SaleIndex({ sales }: any) {
                                                 </td>
                                                 <td className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-5 text-right">
                                                     <div className="flex justify-end gap-1 sm:gap-1.5 opacity-70 group-hover:opacity-100 transition-opacity">
+                                                        <a
+                                                            href={route('admin.sales.invoice', { sale: sale.id })}
+                                                            className="p-1.5 sm:p-2 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 dark:text-gray-400 dark:hover:text-emerald-400 dark:hover:bg-emerald-900/30 rounded-lg transition-all duration-200"
+                                                            title="Download Invoice"
+                                                        >
+                                                            <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                                        </a>
                                                         <Link
                                                             href={route('admin.sales.edit', { sale: sale.id })}
                                                             className="p-1.5 sm:p-2 text-gray-500 hover:text-amber-600 hover:bg-amber-50 dark:text-gray-400 dark:hover:text-amber-400 dark:hover:bg-amber-900/30 rounded-lg transition-all duration-200"
@@ -335,14 +377,14 @@ export default function SaleIndex({ sales }: any) {
                         {filteredSales.map((sale: any, index: number) => {
                             const type = getSaleType(sale.total_amount);
                             return (
-                                <div 
-                                    key={sale.id} 
+                                <div
+                                    key={sale.id}
                                     className="group relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl sm:rounded-2xl p-4 sm:p-5 lg:p-6 shadow-sm hover:shadow-xl hover:border-amber-200 dark:hover:border-amber-700 transition-shadow duration-300"
                                     style={{ animationDelay: `${index * 50}ms` }}
                                 >
                                     {/* Premium Gradient Accent */}
                                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 to-amber-400 dark:from-amber-600 dark:to-amber-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left rounded-t-xl sm:rounded-t-2xl" />
-                                    
+
                                     {/* Background Pattern */}
                                     <div className="absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity duration-300">
                                         <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500 rounded-full blur-3xl" />
@@ -358,7 +400,7 @@ export default function SaleIndex({ sales }: any) {
                                                     <FileText className="w-2 h-2 sm:w-3 sm:h-3 text-white" />
                                                 </div>
                                             </div>
-                                            
+
                                             <div className="flex flex-col items-end">
                                                 <span className="text-[10px] sm:text-xs font-mono bg-gray-100 dark:bg-gray-700 px-2 sm:px-2.5 py-1 rounded-full text-gray-600 dark:text-gray-300 font-semibold truncate max-w-[120px] sm:max-w-[150px]">
                                                     {sale.invoice_number}
@@ -439,22 +481,29 @@ export default function SaleIndex({ sales }: any) {
                                                 <div className="flex items-center gap-0.5 sm:gap-1">
                                                     <Fuel className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 dark:text-amber-400" />
                                                     <span className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white">
-                                                     {
-                                                        sale.items
-                                                            ? sale.items.reduce(
-                                                                (sum: number, item: any) => sum + parseFloat(item.quantity),
-                                                                0
-                                                            ).toFixed(2)
-                                                            : 0
-                                                    } L
+                                                        {
+                                                            sale.items
+                                                                ? sale.items.reduce(
+                                                                    (sum: number, item: any) => sum + parseFloat(item.quantity),
+                                                                    0
+                                                                ).toFixed(2)
+                                                                : 0
+                                                        } L
                                                     </span>
                                                 </div>
                                             </div>
                                         </div>
 
                                         <div className="flex gap-2">
-                                            <Link 
-                                                href={route('admin.sales.edit', { sale: sale.id })} 
+                                            <a
+                                                href={route('admin.sales.invoice', { sale: sale.id })}
+                                                className="flex-1 text-center text-[10px] sm:text-xs font-bold py-2.5 sm:py-3 bg-gradient-to-r from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-emerald-800/30 hover:from-emerald-600 hover:to-emerald-500 text-emerald-700 dark:text-emerald-300 hover:text-white rounded-lg sm:rounded-xl transition-all duration-200 uppercase tracking-wider flex items-center justify-center gap-1"
+                                            >
+                                                <Download className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                                Invoice
+                                            </a>
+                                            <Link
+                                                href={route('admin.sales.edit', { sale: sale.id })}
                                                 className="flex-1 text-center text-[10px] sm:text-xs font-bold py-2.5 sm:py-3 bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/30 hover:from-amber-600 hover:to-amber-500 text-amber-700 dark:text-amber-300 hover:text-white rounded-lg sm:rounded-xl transition-all duration-200 uppercase tracking-wider"
                                             >
                                                 Edit Sale
@@ -495,7 +544,7 @@ export default function SaleIndex({ sales }: any) {
                             {searchTerm ? 'No sales found' : 'No sales recorded yet'}
                         </h3>
                         <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-6 sm:mb-8 max-w-md mx-auto px-2">
-                            {searchTerm 
+                            {searchTerm
                                 ? `No sales match "${searchTerm}". Try a different search term.`
                                 : 'Start tracking your fuel sales by creating your first invoice.'}
                         </p>
