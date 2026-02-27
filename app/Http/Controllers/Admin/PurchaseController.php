@@ -17,7 +17,8 @@ class PurchaseController extends Controller
     public function index()
     {
         return Inertia::render('admin/purchases/Index', [
-            'purchases' => Purchase::with('party')->latest()->get()
+            'purchases' => Purchase::with(['party', 'items'])->latest()->get(),
+            'parties' => Party::select('id', 'name')->get(),
         ]);
     }
 
@@ -51,6 +52,7 @@ class PurchaseController extends Controller
                 'bill_number' => $validated['bill_number'],
                 'reference_number' => $validated['reference_number'],
                 'total_amount' => $totalAmount,
+                'balance_amount' => $totalAmount
             ]);
 
             foreach ($validated['items'] as $item) {

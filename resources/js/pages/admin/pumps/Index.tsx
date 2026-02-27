@@ -31,6 +31,7 @@ interface Props {
 
 export default function Index({ pumps, stations }: Props) {
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterStation, setFilterStation] = useState('');
     const [editingId, setEditingId] = useState<number | null>(null);
     const [showMobileForm, setShowMobileForm] = useState(false);
     const [selectedPump, setSelectedPump] = useState<Pump | null>(null);
@@ -44,10 +45,12 @@ export default function Index({ pumps, stations }: Props) {
     const totalPumps = pumps.length;
     const totalStations = stations.length;
 
-    const filteredPumps = pumps.filter(p =>
-        p.pump_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.station.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredPumps = pumps.filter(p => {
+        const matchesSearch = p.pump_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            p.station.name.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesStation = !filterStation || p.station_id.toString() === filterStation;
+        return matchesSearch && matchesStation;
+    });
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -151,15 +154,37 @@ export default function Index({ pumps, stations }: Props) {
                                 </p>
                             </div>
                         </div>
-                        <div className="relative group w-full sm:w-auto">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-amber-500 transition-colors" />
-                            <input
-                                type="text"
-                                placeholder="Quick search..."
-                                className="w-full sm:w-64 pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-700 border-none rounded-xl text-sm dark:text-white focus:ring-2 focus:ring-amber-500/20 transition-all"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+                        <div className="flex items-center gap-3 w-full sm:w-auto">
+                            <div className="relative group">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-amber-500 transition-colors" />
+                                <input
+                                    type="text"
+                                    placeholder="Quick search..."
+                                    className="w-full sm:w-64 pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-700 border-none rounded-xl text-sm dark:text-white focus:ring-2 focus:ring-amber-500/20 transition-all"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+                            <div className="relative">
+                                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                                <select
+                                    value={filterStation}
+                                    onChange={(e) => setFilterStation(e.target.value)}
+                                    className="pl-10 pr-8 py-2 bg-gray-50 dark:bg-gray-700 border-none rounded-xl text-sm dark:text-white focus:ring-2 focus:ring-amber-500/20 transition-all appearance-none cursor-pointer min-w-[160px]"
+                                >
+                                    <option value="">All Stations</option>
+                                    {stations.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                                </select>
+                            </div>
+                            {filterStation && (
+                                <button
+                                    onClick={() => setFilterStation('')}
+                                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-400 hover:text-gray-600 transition-colors"
+                                    title="Clear filter"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>

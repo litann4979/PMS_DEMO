@@ -14,22 +14,22 @@ interface DataTableProps<T> {
 
 export default function DataTable<T>({ columns, data, emptyMessage }: DataTableProps<T>) {
     return (
-        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 border border-slate-200 dark:border-gray-700 rounded-2xl shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
-                    <thead className="bg-slate-50/50 border-b border-slate-100">
+                    <thead className="bg-slate-50/50 dark:bg-gray-700/50 border-b border-slate-100 dark:border-gray-600">
                         <tr>
                             {columns.map((col, i) => (
-                                <th key={i} className={`p-4 text-[11px] font-black uppercase tracking-widest text-slate-400 ${col.className || ''}`}>
+                                <th key={i} className={`p-4 text-[11px] font-black uppercase tracking-widest text-slate-400 dark:text-gray-400 ${col.className || ''}`}>
                                     {col.header}
                                 </th>
                             ))}
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-50">
+                    <tbody className="divide-y divide-slate-50 dark:divide-gray-700">
                         {data.length > 0 ? (
                             data.map((item, ri) => (
-                                <tr key={ri} className="group hover:bg-slate-50/50 transition-colors">
+                                <tr key={ri} className="group hover:bg-slate-50/50 dark:hover:bg-gray-700/50 transition-colors">
                                     {columns.map((col, ci) => (
                                         <td key={ci} className={`p-4 align-middle ${col.className || ''}`}>
                                             {col.render(item)}
@@ -39,7 +39,7 @@ export default function DataTable<T>({ columns, data, emptyMessage }: DataTableP
                             ))
                         ) : (
                             <tr>
-                                <td colSpan={columns.length} className="p-12 text-center text-slate-400 font-medium italic">
+                                <td colSpan={columns.length} className="p-12 text-center text-slate-400 dark:text-gray-500 font-medium italic">
                                     {emptyMessage || 'No records found.'}
                                 </td>
                             </tr>

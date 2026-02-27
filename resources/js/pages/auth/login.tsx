@@ -6,9 +6,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import { register } from '@/routes';
+import { create as register } from '@/actions/Laravel/Fortify/Http/Controllers/RegisteredUserController';
 import { store } from '@/routes/login';
-import { request } from '@/routes/password';
+import { create as forgotPassword } from '@/actions/Laravel/Fortify/Http/Controllers/PasswordResetLinkController';
 import { Fuel, ArrowRight, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 
@@ -28,7 +28,7 @@ export default function Login({
     return (
         <>
             <Head title="Log in - PMS" />
-            
+
             <div className="min-h-screen bg-gradient-to-br from-amber-50/50 via-white to-orange-50/50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 flex items-center justify-center p-4 sm:p-6 lg:p-8">
                 {/* Animated Background Elements */}
                 <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -43,11 +43,11 @@ export default function Login({
                         <div className="relative bg-gradient-to-br from-amber-600 to-amber-500 dark:from-amber-700 dark:to-amber-600 p-6 sm:p-8 lg:p-12 text-white overflow-hidden">
                             {/* Background Pattern */}
                             <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)]" />
-                            
+
                             {/* Floating Elements */}
                             <div className="absolute top-10 right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
                             <div className="absolute bottom-10 left-10 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
-                            
+
                             <div className="relative z-10 h-full flex flex-col">
                                 {/* Logo */}
                                 <div className="flex items-center gap-2 mb-8 sm:mb-12">
@@ -191,7 +191,7 @@ export default function Login({
                                                         </Label>
                                                         {canResetPassword && (
                                                             <TextLink
-                                                                href={request()}
+                                                                href={forgotPassword.url()}
                                                                 className="text-xs text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 font-medium"
                                                                 tabIndex={5}
                                                             >

@@ -6,7 +6,7 @@ import {
     Landmark, Building2, Info, ChevronRight,
     Search, Wallet, Receipt, Droplets, TrendingUp,
     AlertCircle, X, CheckCircle2, Users, Calendar,
-    Banknote, Clock
+    Banknote, Clock, Filter
 } from 'lucide-react';
 import { route } from '@/lib/route';
 import axios from 'axios';
@@ -15,14 +15,30 @@ interface Props {
     parties: any[];
     customers: any[];
     banks: any[];
-    stats: { total_payable: number; total_receivable: number };
+    expenses: any[];
+    contras: any[];
+    supplier_payments: any[];
+    customer_payments: any[];
+    stats: { total_payable: number; total_receivable: number; total_contra: number; contra_count: number; total_expenses: number; expense_count: number };
 }
 
-export default function PaymentIndex({ parties, customers, banks, stats }: Props) {
-    const [activeTab, setActiveTab] = useState<'payable' | 'receivable'>('payable');
+export default function PaymentIndex({ parties, customers, banks, expenses, contras, supplier_payments, customer_payments, stats }: Props) {
+    const [activeTab, setActiveTab] = useState<'payable' | 'receivable' | 'contra' | 'expenses'>('payable');
     const [showMobileForm, setShowMobileForm] = useState(false);
     const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
     const [showMobileDetails, setShowMobileDetails] = useState(false);
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
+
+    const hasDateFilter = dateFrom || dateTo;
+    const filterByDate = (items: any[]) => {
+        return items.filter((p: any) => {
+            const pDate = p.payment_date ? new Date(p.payment_date) : null;
+            const matchesFrom = !dateFrom || (pDate && pDate >= new Date(dateFrom));
+            const matchesTo = !dateTo || (pDate && pDate <= new Date(dateTo + 'T23:59:59'));
+            return matchesFrom && matchesTo;
+        });
+    };
 
     const { data, setData, post, processing, reset, errors } = useForm({
         payable_type: '',
@@ -138,7 +154,7 @@ export default function PaymentIndex({ parties, customers, banks, stats }: Props
                             <div>
                                 <h1 className="font-bold text-gray-900 dark:text-white">Payments</h1>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                                    {activeTab === 'payable' ? 'Supplier Dues' : 'Customer Collections'}
+                                    {activeTab === 'payable' ? 'Supplier Dues' : activeTab === 'receivable' ? 'Customer Collections' : 'Contra Entry'}
                                 </p>
                             </div>
                         </div>
@@ -166,11 +182,31 @@ export default function PaymentIndex({ parties, customers, banks, stats }: Props
                             <ArrowDownCircle className="w-4 h-4 inline mr-1" />
                             Receivable
                         </button>
+                        <button
+                            onClick={() => setActiveTab('contra')}
+                            className={`flex-1 py-3 rounded-xl font-bold text-xs transition-all ${activeTab === 'contra'
+                                ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/30'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                                }`}
+                        >
+                            <Banknote className="w-4 h-4 inline mr-1" />
+                            Contra
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('expenses')}
+                            className={`flex-1 py-3 rounded-xl font-bold text-xs transition-all ${activeTab === 'expenses'
+                                ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/30'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
+                                }`}
+                        >
+                            <CreditCard className="w-4 h-4 inline mr-1" />
+                            Expenses
+                        </button>
                     </div>
                 </div>
 
                 {/* Desktop Header - Hidden on Mobile */}
-                <div className="hidden lg:block p-4 md:p-8 max-w-[1600px] mx-auto">
+                <div className="hidden lg:block p-4 md:p-8 max-w-[1600px] mx-auto space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl border border-gray-100 dark:border-gray-700 p-4 sm:p-6 shadow-sm gap-4">
                         <div className="flex items-center gap-3 sm:gap-4">
                             <div className="p-2.5 sm:p-3 bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/30 rounded-lg sm:rounded-xl">
@@ -185,13 +221,42 @@ export default function PaymentIndex({ parties, customers, banks, stats }: Props
                                 </p>
                             </div>
                         </div>
+                        <div className="flex items-center gap-3">
+                            <div className="relative">
+                                <label className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-medium mb-0.5 block">From Date</label>
+                                <input
+                                    type="date"
+                                    value={dateFrom}
+                                    onChange={(e) => setDateFrom(e.target.value)}
+                                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 dark:focus:border-amber-400 transition-all text-gray-900 dark:text-white"
+                                />
+                            </div>
+                            <div className="relative">
+                                <label className="text-[10px] text-gray-400 dark:text-gray-500 uppercase tracking-wider font-medium mb-0.5 block">To Date</label>
+                                <input
+                                    type="date"
+                                    value={dateTo}
+                                    onChange={(e) => setDateTo(e.target.value)}
+                                    className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 dark:focus:border-amber-400 transition-all text-gray-900 dark:text-white"
+                                />
+                            </div>
+                            {hasDateFilter && (
+                                <button
+                                    onClick={() => { setDateFrom(''); setDateTo(''); }}
+                                    className="mt-4 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-400 hover:text-gray-600 transition-colors"
+                                    title="Clear date filter"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
 
                 {/* Main Content */}
                 <div className="p-4 lg:p-8 max-w-[1600px] mx-auto space-y-4 lg:space-y-8">
                     {/* Desktop Stats Cards - Hidden on Mobile */}
-                    <div className="hidden lg:grid grid-cols-2 gap-6">
+                    <div className="hidden lg:grid grid-cols-4 gap-6">
                         <div className="bg-gradient-to-br from-rose-50 to-orange-50 dark:from-rose-900/10 dark:to-orange-900/10 rounded-xl border border-rose-100 dark:border-rose-800/30 p-6 shadow-sm">
                             <div className="flex items-center justify-between">
                                 <div>
@@ -220,10 +285,38 @@ export default function PaymentIndex({ parties, customers, banks, stats }: Props
                                 <ArrowDownCircle className="w-10 h-10 text-emerald-500/30" />
                             </div>
                         </div>
+                        <div className="bg-gradient-to-br from-indigo-50 to-violet-50 dark:from-indigo-900/10 dark:to-violet-900/10 rounded-xl border border-indigo-100 dark:border-indigo-800/30 p-6 shadow-sm">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-widest mb-1">Total Contra</p>
+                                    <h2 className="text-3xl font-black text-indigo-800 dark:text-indigo-200">
+                                        ₹{stats.total_contra.toLocaleString()}
+                                    </h2>
+                                    <p className="text-[10px] text-indigo-600 dark:text-indigo-400 mt-2 flex items-center gap-1">
+                                        <Banknote className="w-3 h-3" /> {stats.contra_count} Entries
+                                    </p>
+                                </div>
+                                <Banknote className="w-10 h-10 text-indigo-500/30" />
+                            </div>
+                        </div>
+                        <div className="bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-900/10 dark:to-rose-900/10 rounded-xl border border-pink-100 dark:border-pink-800/30 p-6 shadow-sm">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs font-bold text-pink-700 dark:text-pink-300 uppercase tracking-widest mb-1">Total Expenses</p>
+                                    <h2 className="text-3xl font-black text-pink-800 dark:text-pink-200">
+                                        ₹{stats.total_expenses.toLocaleString()}
+                                    </h2>
+                                    <p className="text-[10px] text-pink-600 dark:text-pink-400 mt-2 flex items-center gap-1">
+                                        <CreditCard className="w-3 h-3" /> {stats.expense_count} Entries
+                                    </p>
+                                </div>
+                                <CreditCard className="w-10 h-10 text-pink-500/30" />
+                            </div>
+                        </div>
                     </div>
 
                     {/* Mobile Stats Cards */}
-                    <div className="grid grid-cols-2 gap-3 lg:hidden">
+                    <div className="grid grid-cols-4 gap-3 lg:hidden">
                         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
                             <div className="flex items-center justify-between mb-2">
                                 <ArrowUpCircle className="w-5 h-5 text-rose-500" />
@@ -237,6 +330,20 @@ export default function PaymentIndex({ parties, customers, banks, stats }: Props
                                 <span className="text-xs text-gray-500">Receivable</span>
                             </div>
                             <p className="text-lg font-bold text-gray-900 dark:text-white">₹{stats.total_receivable.toLocaleString()}</p>
+                        </div>
+                        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                            <div className="flex items-center justify-between mb-2">
+                                <Banknote className="w-5 h-5 text-indigo-500" />
+                                <span className="text-xs text-gray-500">Contra</span>
+                            </div>
+                            <p className="text-lg font-bold text-gray-900 dark:text-white">₹{stats.total_contra.toLocaleString()}</p>
+                        </div>
+                        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700">
+                            <div className="flex items-center justify-between mb-2">
+                                <CreditCard className="w-5 h-5 text-pink-500" />
+                                <span className="text-xs text-gray-500">Expenses</span>
+                            </div>
+                            <p className="text-lg font-bold text-gray-900 dark:text-white">₹{stats.total_expenses.toLocaleString()}</p>
                         </div>
                     </div>
 
@@ -262,139 +369,220 @@ export default function PaymentIndex({ parties, customers, banks, stats }: Props
                             >
                                 <Receipt className="w-5 h-5" /> Customer Collections
                             </button>
+                            <button
+                                onClick={() => setActiveTab('contra')}
+                                className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl font-bold text-sm transition-all ${activeTab === 'contra'
+                                    ? 'bg-white dark:bg-gray-700 text-indigo-600 dark:text-indigo-400 shadow-sm border border-gray-100 dark:border-gray-600'
+                                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                                    }`}
+                            >
+                                <Banknote className="w-5 h-5" /> Contra
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('expenses')}
+                                className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-2xl font-bold text-sm transition-all ${activeTab === 'expenses'
+                                    ? 'bg-white dark:bg-gray-700 text-rose-600 dark:text-rose-400 shadow-sm border border-gray-100 dark:border-gray-600'
+                                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+                                    }`}
+                            >
+                                <CreditCard className="w-5 h-5" /> Expenses
+                            </button>
                         </div>
 
                         <div className="p-4 lg:p-8">
-                            {/* Selector Section */}
-                            <div className="mb-6 lg:mb-8">
-                                <h3 className="text-base lg:text-lg font-bold text-gray-800 dark:text-white mb-3 lg:mb-4">
-                                    {activeTab === 'payable' ? 'Select Supplier' : 'Select Customer'}
-                                </h3>
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 lg:w-5 lg:h-5" />
-                                    <select
-                                        className={`w-full pl-10 pr-4 py-3 lg:py-4 rounded-xl lg:rounded-2xl border-2 appearance-none bg-gray-50 dark:bg-gray-900 dark:text-white text-sm ${activeTab === 'payable'
-                                            ? 'border-amber-100 focus:border-amber-500 focus:ring-amber-500/20'
-                                            : 'border-emerald-100 focus:border-emerald-500 focus:ring-emerald-500/20'
-                                            }`}
-                                        value={activeTab === 'payable' ? data.party_id : data.customer_id}
-                                        onChange={(e) => activeTab === 'payable' ? handlePartyChange(e.target.value) : handleCustomerChange(e.target.value)}
-                                    >
-                                        <option value="">-- Choose {activeTab === 'payable' ? 'Party' : 'Customer'} --</option>
-                                        {(activeTab === 'payable' ? parties : customers).map(item => (
-                                            <option key={item.id} value={item.id}>{item.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-
-                            {outstandingList.length > 0 ? (
+                            {activeTab === 'payable' || activeTab === 'receivable' ? (
                                 <>
-                                    {/* Mobile Invoice List */}
-                                    <div className="lg:hidden space-y-3">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Pending Invoices</p>
-                                            <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${activeTab === 'payable' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'}`}>
-                                                {outstandingList.length}
-                                            </span>
-                                        </div>
-                                        {outstandingList.map((item) => (
-                                            <div
-                                                key={item.id}
-                                                onClick={() => handleSelectInvoice(item)}
-                                                className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 active:scale-[0.98] transition-transform cursor-pointer"
+                                    {/* Selector Section */}
+                                    <div className="mb-6 lg:mb-8">
+                                        <h3 className="text-base lg:text-lg font-bold text-gray-800 dark:text-white mb-3 lg:mb-4">
+                                            {activeTab === 'payable' ? 'Select Supplier' : 'Select Customer'}
+                                        </h3>
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 lg:w-5 lg:h-5" />
+                                            <select
+                                                className={`w-full pl-10 pr-4 py-3 lg:py-4 rounded-xl lg:rounded-2xl border-2 appearance-none bg-gray-50 dark:bg-gray-900 dark:text-white text-sm ${activeTab === 'payable'
+                                                    ? 'border-amber-100 focus:border-amber-500 focus:ring-amber-500/20'
+                                                    : 'border-emerald-100 focus:border-emerald-500 focus:ring-emerald-500/20'
+                                                    }`}
+                                                value={activeTab === 'payable' ? data.party_id : data.customer_id}
+                                                onChange={(e) => activeTab === 'payable' ? handlePartyChange(e.target.value) : handleCustomerChange(e.target.value)}
                                             >
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className={`p-2 rounded-lg ${activeTab === 'payable' ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400' : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400'}`}>
-                                                            <Receipt className="w-4 h-4" />
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-bold text-sm dark:text-white">#{item.bill_number || item.invoice_number}</p>
-                                                            <p className="text-[10px] text-gray-500">{item.purchase_date || item.sale_date}</p>
-                                                        </div>
-                                                    </div>
-                                                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                                                </div>
-                                                <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
-                                                    <span className="text-xs text-gray-500">Outstanding</span>
-                                                    <span className="font-bold text-rose-500">₹{item.outstanding}</span>
-                                                </div>
-                                            </div>
-                                        ))}
+                                                <option value="">-- Choose {activeTab === 'payable' ? 'Party' : 'Customer'} --</option>
+                                                {(activeTab === 'payable' ? parties : customers).map(item => (
+                                                    <option key={item.id} value={item.id}>{item.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
                                     </div>
 
-                                    {/* Desktop Invoice Grid */}
-                                    <div className="hidden lg:grid grid-cols-12 gap-6">
-                                        {/* Left Side - Invoice List */}
-                                        <div className="col-span-7 space-y-4">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Available Invoices</p>
-                                                <span className={`text-[10px] font-bold px-3 py-1 rounded-full ${activeTab === 'payable' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'}`}>
-                                                    {outstandingList.length} Pending
-                                                </span>
-                                            </div>
-                                            <div className="max-h-[500px] overflow-y-auto pr-2 space-y-3">
+                                    {outstandingList.length > 0 ? (
+                                        <>
+                                            {/* Mobile Invoice List */}
+                                            <div className="lg:hidden space-y-3">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Pending Invoices</p>
+                                                    <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${activeTab === 'payable' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'}`}>
+                                                        {outstandingList.length}
+                                                    </span>
+                                                </div>
                                                 {outstandingList.map((item) => (
                                                     <div
                                                         key={item.id}
-                                                        onClick={() => {
-                                                            setData('payable_id', item.id);
-                                                            setData('paid_amount', item.outstanding.toString());
-                                                        }}
-                                                        className={`cursor-pointer p-5 rounded-2xl border-2 transition-all ${data.payable_id === item.id
-                                                            ? (activeTab === 'payable' ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-900/20' : 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-900/20')
-                                                            : 'border-gray-50 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 bg-white dark:bg-gray-800'
-                                                            }`}
+                                                        onClick={() => handleSelectInvoice(item)}
+                                                        className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-100 dark:border-gray-700 active:scale-[0.98] transition-transform cursor-pointer"
                                                     >
-                                                        <div className="flex justify-between items-center">
-                                                            <div className="flex items-center gap-4">
-                                                                <div className={`p-3 rounded-xl ${data.payable_id === item.id
-                                                                    ? (activeTab === 'payable' ? 'bg-amber-500 text-white' : 'bg-emerald-500 text-white')
-                                                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
-                                                                    }`}>
-                                                                    <Receipt className="w-6 h-6" />
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className={`p-2 rounded-lg ${activeTab === 'payable' ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/40 dark:text-amber-400' : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400'}`}>
+                                                                    <Receipt className="w-4 h-4" />
                                                                 </div>
                                                                 <div>
-                                                                    <p className="font-bold dark:text-white">#{item.bill_number || item.invoice_number}</p>
-                                                                    <p className="text-xs text-gray-400">{item.purchase_date || item.sale_date}</p>
+                                                                    <p className="font-bold text-sm dark:text-white">#{item.bill_number || item.invoice_number}</p>
+                                                                    <p className="text-[10px] text-gray-500">{item.purchase_date || item.sale_date}</p>
                                                                 </div>
                                                             </div>
-                                                            <div className="text-right">
-                                                                <p className="font-black text-rose-500">₹{item.outstanding}</p>
-                                                            </div>
+                                                            <ChevronRight className="w-4 h-4 text-gray-400" />
+                                                        </div>
+                                                        <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+                                                            <span className="text-xs text-gray-500">Outstanding</span>
+                                                            <span className="font-bold text-rose-500">₹{item.outstanding}</span>
                                                         </div>
                                                     </div>
                                                 ))}
                                             </div>
-                                        </div>
 
-                                        {/* Right Side - Payment Form */}
-                                        <div className="col-span-5">
-                                            <PaymentForm
-                                                activeTab={activeTab}
-                                                data={data}
-                                                setData={setData}
-                                                errors={errors}
-                                                processing={processing}
-                                                submit={submit}
-                                                banks={banks}
-                                                counterpartyBanks={counterpartyBanks}
-                                                handleCounterpartyBankSelect={handleCounterpartyBankSelect}
-                                            />
+                                            {/* Desktop Invoice Grid */}
+                                            <div className="hidden lg:grid grid-cols-12 gap-6">
+                                                {/* Left Side - Invoice List */}
+                                                <div className="col-span-7 space-y-4">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Available Invoices</p>
+                                                        <span className={`text-[10px] font-bold px-3 py-1 rounded-full ${activeTab === 'payable' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300'}`}>
+                                                            {outstandingList.length} Pending
+                                                        </span>
+                                                    </div>
+                                                    <div className="max-h-[500px] overflow-y-auto pr-2 space-y-3">
+                                                        {outstandingList.map((item) => (
+                                                            <div
+                                                                key={item.id}
+                                                                onClick={() => {
+                                                                    setData('payable_id', item.id);
+                                                                    setData('paid_amount', item.outstanding.toString());
+                                                                }}
+                                                                className={`cursor-pointer p-5 rounded-2xl border-2 transition-all ${data.payable_id === item.id
+                                                                    ? (activeTab === 'payable' ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-900/20' : 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-900/20')
+                                                                    : 'border-gray-50 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600 bg-white dark:bg-gray-800'
+                                                                    }`}
+                                                            >
+                                                                <div className="flex justify-between items-center">
+                                                                    <div className="flex items-center gap-4">
+                                                                        <div className={`p-3 rounded-xl ${data.payable_id === item.id
+                                                                            ? (activeTab === 'payable' ? 'bg-amber-500 text-white' : 'bg-emerald-500 text-white')
+                                                                            : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'
+                                                                            }`}>
+                                                                            <Receipt className="w-6 h-6" />
+                                                                        </div>
+                                                                        <div>
+                                                                            <p className="font-bold dark:text-white">#{item.bill_number || item.invoice_number}</p>
+                                                                            <p className="text-xs text-gray-400">{item.purchase_date || item.sale_date}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="text-right">
+                                                                        <p className="font-black text-rose-500">₹{item.outstanding}</p>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* Right Side - Payment Form */}
+                                                <div className="col-span-5">
+                                                    <PaymentForm
+                                                        activeTab={activeTab}
+                                                        data={data}
+                                                        setData={setData}
+                                                        errors={errors}
+                                                        processing={processing}
+                                                        submit={submit}
+                                                        banks={banks}
+                                                        counterpartyBanks={counterpartyBanks}
+                                                        handleCounterpartyBankSelect={handleCounterpartyBankSelect}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center py-12 lg:py-16 text-center">
+                                            <div className="h-16 w-16 lg:h-20 lg:w-20 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-2xl lg:rounded-3xl flex items-center justify-center mb-4">
+                                                <Building2 className="w-8 h-8 lg:w-10 lg:h-10 text-gray-300 dark:text-gray-600" />
+                                            </div>
+                                            <h5 className="text-sm lg:text-base font-bold text-gray-500 dark:text-gray-400 mb-1">No Invoices Selected</h5>
+                                            <p className="text-xs text-gray-400 max-w-xs mx-auto">
+                                                Select a {activeTab === 'payable' ? 'supplier' : 'customer'} above to view pending invoices
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {/* Payment History Table */}
+                                    <div className="mt-8 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                                        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                                            <h4 className="font-bold dark:text-white">
+                                                {activeTab === 'payable' ? 'Supplier Payment History' : 'Customer Collection History'}
+                                            </h4>
+                                        </div>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-sm">
+                                                <thead className="bg-gray-50 dark:bg-gray-900">
+                                                    <tr>
+                                                        <th className="p-3 text-left">Date</th>
+                                                        <th className="p-3 text-left">Mode</th>
+                                                        <th className="p-3 text-left">Reference</th>
+                                                        <th className="p-3 text-left">Status</th>
+                                                        <th className="p-3 text-right">Amount</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {filterByDate(activeTab === 'payable' ? supplier_payments : customer_payments)?.length > 0 ? (
+                                                        filterByDate(activeTab === 'payable' ? supplier_payments : customer_payments).map((p: any) => (
+                                                            <tr key={p.id} className="border-b border-gray-100 dark:border-gray-700">
+                                                                <td className="p-3 dark:text-gray-300">{p.payment_date?.split('T')[0]}</td>
+                                                                <td className="p-3 dark:text-gray-300">
+                                                                    <span className={`px-2 py-1 rounded-lg text-xs font-bold ${p.payment_type === 'CASH' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                                        : p.payment_type === 'BANK' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                                                                            : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                                                                        }`}>
+                                                                        {p.payment_type}
+                                                                    </span>
+                                                                    {p.company_bank && <span className="text-xs text-gray-400 ml-2">{p.company_bank.bank_name}</span>}
+                                                                </td>
+                                                                <td className="p-3 dark:text-gray-300 text-xs">{p.transaction_reference_id || '-'}</td>
+                                                                <td className="p-3">
+                                                                    <span className={`px-2 py-1 rounded-lg text-xs font-bold ${p.status === 'SUCCESS' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                                                        : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                                                                        }`}>
+                                                                        {p.status}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="p-3 text-right font-bold text-rose-500">₹{Number(p.paid_amount).toLocaleString()}</td>
+                                                            </tr>
+                                                        ))
+                                                    ) : (
+                                                        <tr>
+                                                            <td className="p-3 text-gray-400" colSpan={5}>
+                                                                No payments recorded yet
+                                                            </td>
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
                                         </div>
                                     </div>
                                 </>
+                            ) : activeTab === 'contra' ? (
+                                <ContraForm banks={banks} contras={contras} />
                             ) : (
-                                <div className="flex flex-col items-center justify-center py-12 lg:py-16 text-center">
-                                    <div className="h-16 w-16 lg:h-20 lg:w-20 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 rounded-2xl lg:rounded-3xl flex items-center justify-center mb-4">
-                                        <Building2 className="w-8 h-8 lg:w-10 lg:h-10 text-gray-300 dark:text-gray-600" />
-                                    </div>
-                                    <h5 className="text-sm lg:text-base font-bold text-gray-500 dark:text-gray-400 mb-1">No Invoices Selected</h5>
-                                    <p className="text-xs text-gray-400 max-w-xs mx-auto">
-                                        Select a {activeTab === 'payable' ? 'supplier' : 'customer'} above to view pending invoices
-                                    </p>
-                                </div>
+                                <ExpensesSection banks={banks} expenses={expenses} />
                             )}
                         </div>
                     </div>
@@ -606,5 +794,318 @@ function PaymentForm({
                 </div>
             )}
         </form>
+    );
+}
+
+function ContraForm({ banks, contras }: any) {
+
+    const { data, setData, post, processing } = useForm({
+        from_account_type: 'CASH',
+        to_account_type: 'BANK',
+        from_bank_id: '',
+        to_bank_id: '',
+        amount: '',
+        transaction_date: new Date().toISOString().split('T')[0],
+        remarks: '',
+    });
+
+    const submit = (e: React.FormEvent) => {
+        e.preventDefault();
+        post(route('admin.contras.store'));
+    };
+
+    return (
+        <div className="space-y-6">
+            <form onSubmit={submit} className="bg-gray-50 dark:bg-gray-900 p-6 rounded-2xl space-y-4 border border-gray-200 dark:border-gray-700">
+
+                <h3 className="font-bold text-lg dark:text-white mb-2">
+                    Cash / Bank Transfer
+                </h3>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="text-xs font-bold">From</label>
+                        <select
+                            className="w-full rounded-xl p-3 bg-white dark:bg-gray-800"
+                            value={data.from_account_type}
+                            onChange={e => setData('from_account_type', e.target.value)}
+                        >
+                            <option value="CASH">Cash</option>
+                            <option value="BANK">Bank</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label className="text-xs font-bold">To</label>
+                        <select
+                            className="w-full rounded-xl p-3 bg-white dark:bg-gray-800"
+                            value={data.to_account_type}
+                            onChange={e => setData('to_account_type', e.target.value)}
+                        >
+                            <option value="CASH">Cash</option>
+                            <option value="BANK">Bank</option>
+                        </select>
+                    </div>
+                </div>
+
+                {data.from_account_type === 'BANK' && (
+                    <div>
+                        <label className="text-xs font-bold">From Bank</label>
+                        <select
+                            className="w-full rounded-xl p-3 bg-white dark:bg-gray-800"
+                            value={data.from_bank_id}
+                            onChange={e => setData('from_bank_id', e.target.value)}
+                        >
+                            <option value="">Select Bank</option>
+                            {banks.map((b: any) => (
+                                <option key={b.id} value={b.id}>
+                                    {b.bank_name} (••••{b.account_number.slice(-4)})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+
+                {data.to_account_type === 'BANK' && (
+                    <div>
+                        <label className="text-xs font-bold">To Bank</label>
+                        <select
+                            className="w-full rounded-xl p-3 bg-white dark:bg-gray-800"
+                            value={data.to_bank_id}
+                            onChange={e => setData('to_bank_id', e.target.value)}
+                        >
+                            <option value="">Select Bank</option>
+                            {banks.map((b: any) => (
+                                <option key={b.id} value={b.id}>
+                                    {b.bank_name} (••••{b.account_number.slice(-4)})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+
+                <input
+                    type="number"
+                    placeholder="Amount"
+                    className="w-full rounded-xl p-3 bg-white dark:bg-gray-800"
+                    value={data.amount}
+                    onChange={e => setData('amount', e.target.value)}
+                />
+
+                <input
+                    type="date"
+                    className="w-full rounded-xl p-3 bg-white dark:bg-gray-800"
+                    value={data.transaction_date}
+                    onChange={e => setData('transaction_date', e.target.value)}
+                />
+
+                <textarea
+                    placeholder="Remarks"
+                    className="w-full rounded-xl p-3 bg-white dark:bg-gray-800"
+                    value={data.remarks}
+                    onChange={e => setData('remarks', e.target.value)}
+                />
+
+                <button
+                    disabled={processing}
+                    className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold"
+                >
+                    {processing ? 'Processing...' : 'Transfer'}
+                </button>
+            </form>
+
+            {/* Contra History Table */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h4 className="font-bold dark:text-white">Contra History</h4>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                        <thead className="bg-gray-50 dark:bg-gray-900">
+                            <tr>
+                                <th className="p-3 text-left">Date</th>
+                                <th className="p-3 text-left">From</th>
+                                <th className="p-3 text-left">To</th>
+                                <th className="p-3 text-left">Remarks</th>
+                                <th className="p-3 text-right">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {contras && contras.length > 0 ? (
+                                contras.map((c: any) => (
+                                    <tr key={c.id} className="border-b border-gray-100 dark:border-gray-700">
+                                        <td className="p-3 dark:text-gray-300">{c.transaction_date}</td>
+                                        <td className="p-3 dark:text-gray-300">
+                                            <span className={`px-2 py-1 rounded-lg text-xs font-bold ${c.from_account_type === 'CASH' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}`}>
+                                                {c.from_account_type}
+                                            </span>
+                                            {c.from_bank && <span className="text-xs text-gray-400 ml-1">{c.from_bank.bank_name}</span>}
+                                        </td>
+                                        <td className="p-3 dark:text-gray-300">
+                                            <span className={`px-2 py-1 rounded-lg text-xs font-bold ${c.to_account_type === 'CASH' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}`}>
+                                                {c.to_account_type}
+                                            </span>
+                                            {c.to_bank && <span className="text-xs text-gray-400 ml-1">{c.to_bank.bank_name}</span>}
+                                        </td>
+                                        <td className="p-3 dark:text-gray-300 text-xs">{c.remarks || '-'}</td>
+                                        <td className="p-3 text-right font-bold text-indigo-500">₹{Number(c.amount).toLocaleString()}</td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td className="p-3 text-gray-400" colSpan={5}>
+                                        No contra entries recorded yet
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function ExpensesSection({ banks, expenses }: any) {
+
+    const { data, setData, post, processing, reset } = useForm({
+        expense_date: new Date().toISOString().split('T')[0],
+        category: '',
+        amount: '',
+        payment_mode: 'CASH',
+        bank_id: '',
+        remarks: '',
+    });
+
+    const submit = (e: React.FormEvent) => {
+        e.preventDefault();
+        post(route('admin.expenses.store'), {
+            onSuccess: () => reset()
+        });
+    };
+
+    return (
+        <div className="space-y-6">
+
+            {/* Expense Form */}
+            <form onSubmit={submit} className="bg-gray-50 dark:bg-gray-900 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 space-y-4">
+
+                <h3 className="font-bold text-lg dark:text-white">
+                    Add Expense
+                </h3>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <input
+                        type="date"
+                        value={data.expense_date}
+                        onChange={e => setData('expense_date', e.target.value)}
+                        className="rounded-xl p-3 bg-white dark:bg-gray-800"
+                    />
+
+                    <input
+                        type="text"
+                        placeholder="Category (e.g Diesel, Salary)"
+                        value={data.category}
+                        onChange={e => setData('category', e.target.value)}
+                        className="rounded-xl p-3 bg-white dark:bg-gray-800"
+                    />
+                </div>
+
+                <input
+                    type="number"
+                    placeholder="Amount"
+                    value={data.amount}
+                    onChange={e => setData('amount', e.target.value)}
+                    className="w-full rounded-xl p-3 bg-white dark:bg-gray-800"
+                />
+
+                <div className="grid grid-cols-2 gap-4">
+                    <select
+                        value={data.payment_mode}
+                        onChange={e => setData('payment_mode', e.target.value)}
+                        className="rounded-xl p-3 bg-white dark:bg-gray-800"
+                    >
+                        <option value="CASH">Cash</option>
+                        <option value="BANK">Bank</option>
+                    </select>
+
+                    {data.payment_mode === 'BANK' && (
+                        <select
+                            value={data.bank_id}
+                            onChange={e => setData('bank_id', e.target.value)}
+                            className="rounded-xl p-3 bg-white dark:bg-gray-800"
+                        >
+                            <option value="">Select Bank</option>
+                            {banks.map((b: any) => (
+                                <option key={b.id} value={b.id}>
+                                    {b.bank_name} (••••{b.account_number.slice(-4)})
+                                </option>
+                            ))}
+                        </select>
+                    )}
+                </div>
+
+                <textarea
+                    placeholder="Remarks"
+                    value={data.remarks}
+                    onChange={e => setData('remarks', e.target.value)}
+                    className="w-full rounded-xl p-3 bg-white dark:bg-gray-800"
+                />
+
+                <button
+                    disabled={processing}
+                    className="w-full bg-rose-600 text-white py-3 rounded-xl font-bold"
+                >
+                    {processing ? 'Saving...' : 'Add Expense'}
+                </button>
+            </form>
+
+            {/* Expense Table */}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+
+                <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h4 className="font-bold dark:text-white">
+                        Expense History
+                    </h4>
+                </div>
+
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                        <thead className="bg-gray-50 dark:bg-gray-900">
+                            <tr>
+                                <th className="p-3 text-left">Date</th>
+                                <th className="p-3 text-left">Category</th>
+                                <th className="p-3 text-left">Mode</th>
+                                <th className="p-3 text-right">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {expenses && expenses.length > 0 ? (
+                                expenses.map((exp: any) => (
+                                    <tr key={exp.id} className="border-b border-gray-100 dark:border-gray-700">
+                                        <td className="p-3 dark:text-gray-300">{exp.expense_date}</td>
+                                        <td className="p-3 dark:text-gray-300">{exp.category}</td>
+                                        <td className="p-3 dark:text-gray-300">
+                                            <span className={`px-2 py-1 rounded-lg text-xs font-bold ${exp.payment_mode === 'CASH' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}`}>
+                                                {exp.payment_mode}
+                                            </span>
+                                            {exp.bank && <span className="text-xs text-gray-400 ml-2">{exp.bank.bank_name}</span>}
+                                        </td>
+                                        <td className="p-3 text-right font-bold text-rose-500">₹{Number(exp.amount).toLocaleString()}</td>
+                                    </tr>
+                                ))
+                            ) : (
+                                <tr>
+                                    <td className="p-3 text-gray-400" colSpan={4}>
+                                        No expenses recorded yet
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
     );
 }

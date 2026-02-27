@@ -37,6 +37,8 @@ interface Props {
 
 export default function Index({ nozzles, pumps, products }: Props) {
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterPump, setFilterPump] = useState('');
+    const [filterProduct, setFilterProduct] = useState('');
     const [editingId, setEditingId] = useState<number | null>(null);
     const [showMobileForm, setShowMobileForm] = useState(false);
     const [selectedNozzle, setSelectedNozzle] = useState<Nozzle | null>(null);
@@ -55,11 +57,14 @@ export default function Index({ nozzles, pumps, products }: Props) {
         ? (nozzles.reduce((sum, n) => sum + parseFloat(n.current_meter_reading || '0'), 0) / nozzles.length).toFixed(2)
         : '0.00';
 
-    const filteredNozzles = nozzles.filter(n =>
-        n.nozzle_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        n.product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        n.pump.pump_number.toString().includes(searchTerm)
-    );
+    const filteredNozzles = nozzles.filter(n => {
+        const matchesSearch = n.nozzle_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            n.product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            n.pump.pump_number.toString().includes(searchTerm);
+        const matchesPump = !filterPump || n.pump_id.toString() === filterPump;
+        const matchesProduct = !filterProduct || n.product_id.toString() === filterProduct;
+        return matchesSearch && matchesPump && matchesProduct;
+    });
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -172,15 +177,48 @@ export default function Index({ nozzles, pumps, products }: Props) {
                                 </p>
                             </div>
                         </div>
-                        <div className="relative group w-full sm:w-auto">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-amber-500 transition-colors" />
-                            <input
-                                type="text"
-                                placeholder="Quick search..."
-                                className="w-full sm:w-64 pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-700 border-none rounded-xl text-sm dark:text-white focus:ring-2 focus:ring-amber-500/20 transition-all"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
+                        <div className="flex items-center gap-3 w-full sm:w-auto">
+                            <div className="relative group">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 group-focus-within:text-amber-500 transition-colors" />
+                                <input
+                                    type="text"
+                                    placeholder="Quick search..."
+                                    className="w-full sm:w-64 pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-700 border-none rounded-xl text-sm dark:text-white focus:ring-2 focus:ring-amber-500/20 transition-all"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+                            <div className="relative">
+                                <Layers className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                                <select
+                                    value={filterPump}
+                                    onChange={(e) => setFilterPump(e.target.value)}
+                                    className="pl-10 pr-8 py-2 bg-gray-50 dark:bg-gray-700 border-none rounded-xl text-sm dark:text-white focus:ring-2 focus:ring-amber-500/20 transition-all appearance-none cursor-pointer min-w-[150px]"
+                                >
+                                    <option value="">All Pumps</option>
+                                    {pumps.map(p => <option key={p.id} value={p.id}>Pump #{p.pump_number}</option>)}
+                                </select>
+                            </div>
+                            <div className="relative">
+                                <Droplets className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                                <select
+                                    value={filterProduct}
+                                    onChange={(e) => setFilterProduct(e.target.value)}
+                                    className="pl-10 pr-8 py-2 bg-gray-50 dark:bg-gray-700 border-none rounded-xl text-sm dark:text-white focus:ring-2 focus:ring-amber-500/20 transition-all appearance-none cursor-pointer min-w-[150px]"
+                                >
+                                    <option value="">All Products</option>
+                                    {products.map(pr => <option key={pr.id} value={pr.id}>{pr.name}</option>)}
+                                </select>
+                            </div>
+                            {(filterPump || filterProduct) && (
+                                <button
+                                    onClick={() => { setFilterPump(''); setFilterProduct(''); }}
+                                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg text-gray-400 hover:text-gray-600 transition-colors"
+                                    title="Clear filters"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>

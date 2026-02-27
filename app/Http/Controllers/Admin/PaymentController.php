@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Bank;
+use App\Models\Contra;
 use App\Models\Customer;
+use App\Models\Expense;
 use App\Models\Party;
 use App\Models\Payment;
 use App\Models\Purchase;
@@ -24,11 +26,22 @@ class PaymentController extends Controller
             'parties' => Party::orderBy('name')->get(),
             'customers' => Customer::orderBy('name')->get(),
             'banks' => Bank::orderBy('bank_name')->get(),
+            'expenses' => Expense::with('bank')->latest('expense_date')->take(50)->get(),
+            'contras' => Contra::with(['fromBank', 'toBank'])->latest('transaction_date')->take(50)->get(),
+            'supplier_payments' => Payment::with('companyBank')
+                ->where('payable_type', Purchase::class)
+                ->latest('payment_date')->take(50)->get(),
+            'customer_payments' => Payment::with('companyBank')
+                ->where('payable_type', Sale::class)
+                ->latest('payment_date')->take(50)->get(),
             'stats' => [
-    'total_payable' => Purchase::sum('balance_amount'),
-    'total_receivable' => Sale::sum('balance_amount'),
-]
-
+                'total_payable' => Purchase::sum('balance_amount'),
+                'total_receivable' => Sale::sum('balance_amount'),
+                'total_contra' => Contra::sum('amount'),
+                'contra_count' => Contra::count(),
+                'total_expenses' => Expense::sum('amount'),
+                'expense_count' => Expense::count(),
+            ]
         ]);
     }
 

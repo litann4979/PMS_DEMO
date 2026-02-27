@@ -3,15 +3,24 @@ import AppLayout from '@/layouts/app-layout';
 import PageHeader from '@/components/admin/page-header';
 import DataTable from '@/components/admin/data-table';
 import { Head, Link } from '@inertiajs/react';
-import { 
-    Briefcase, Plus, Mail, Phone, LayoutGrid, List, 
-    Pencil, MapPin, ShieldCheck, ChevronRight, 
-    Users, Building2, FileText, Percent, Star, Truck 
+import {
+    Briefcase, Plus, Mail, Phone, LayoutGrid, List,
+    Pencil, MapPin, ShieldCheck, ChevronRight,
+    Users, Building2, FileText, Percent, Star, Truck, Search
 } from 'lucide-react';
 import { route } from '@/lib/route';
 
 export default function PartyIndex({ parties }: any) {
     const [viewType, setViewType] = useState<'table' | 'grid'>('grid'); // Default to grid for premium feel
+    const [searchTerm, setSearchTerm] = useState('');
+
+    // Filter parties based on search
+    const filteredParties = parties.filter((party: any) =>
+        party.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        party.mobile?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        party.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        party.gst_number?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     // Calculate stats
     const totalSuppliers = parties.length;
@@ -93,15 +102,15 @@ export default function PartyIndex({ parties }: any) {
             className: 'text-right',
             render: (party: any) => (
                 <div className="flex justify-end gap-2">
-                    <Link 
-                        href={route('admin.parties.edit', { party: party.id })} 
+                    <Link
+                        href={route('admin.parties.edit', { party: party.id })}
                         className="p-2 text-gray-500 hover:text-amber-600 hover:bg-amber-50 dark:text-gray-400 dark:hover:text-amber-400 dark:hover:bg-amber-900/30 rounded-lg transition-all duration-200"
                         title="Edit Supplier"
                     >
                         <Pencil className="w-4 h-4" />
                     </Link>
-                    <Link 
-                        href={route('admin.parties.show', { party: party.id })} 
+                    <Link
+                        href={route('admin.parties.show', { party: party.id })}
                         className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 dark:text-gray-400 dark:hover:text-blue-400 dark:hover:bg-blue-900/30 rounded-lg transition-all duration-200"
                         title="View Details"
                     >
@@ -115,7 +124,7 @@ export default function PartyIndex({ parties }: any) {
     return (
         <AppLayout>
             <Head title="Supplier Management" />
-            
+
             {/* Modern Header with Right-aligned Button */}
             <div className="space-y-6">
                 <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 shadow-sm">
@@ -134,41 +143,51 @@ export default function PartyIndex({ parties }: any) {
                             </div>
                         </div>
                     </div>
-                    
-                    <div className="flex items-center gap-3">
+
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                        {/* Search Bar */}
+                        <div className="relative w-full sm:w-auto">
+                            <input
+                                type="text"
+                                placeholder="Search suppliers..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full sm:w-64 pl-9 pr-4 py-2 sm:py-2.5 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg sm:rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 dark:focus:border-amber-400 transition-all text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+                            />
+                            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-2.5 sm:top-3" />
+                        </div>
+
                         {/* Premium View Toggle */}
-                        <div className="flex bg-gray-100 dark:bg-gray-700/50 p-1 rounded-xl border border-gray-200 dark:border-gray-600">
-                            <button 
-                                onClick={() => setViewType('table')} 
-                                className={`p-2.5 rounded-lg transition-all duration-200 ${
-                                    viewType === 'table' 
-                                        ? 'bg-white dark:bg-gray-800 shadow-sm text-amber-600 dark:text-amber-400 border border-gray-200 dark:border-gray-600' 
+                        <div className="flex bg-gray-100 dark:bg-gray-700/50 p-1 rounded-lg sm:rounded-xl border border-gray-200 dark:border-gray-600 self-start sm:self-auto">
+                            <button
+                                onClick={() => setViewType('table')}
+                                className={`p-2 sm:p-2.5 rounded-lg transition-all duration-200 ${viewType === 'table'
+                                        ? 'bg-white dark:bg-gray-800 shadow-sm text-amber-600 dark:text-amber-400 border border-gray-200 dark:border-gray-600'
                                         : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
-                                }`}
+                                    }`}
                                 title="Table View"
                             >
-                                <List className="w-4 h-4" />
+                                <List className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                             </button>
-                            <button 
-                                onClick={() => setViewType('grid')} 
-                                className={`p-2.5 rounded-lg transition-all duration-200 ${
-                                    viewType === 'grid' 
-                                        ? 'bg-white dark:bg-gray-800 shadow-sm text-amber-600 dark:text-amber-400 border border-gray-200 dark:border-gray-600' 
+                            <button
+                                onClick={() => setViewType('grid')}
+                                className={`p-2 sm:p-2.5 rounded-lg transition-all duration-200 ${viewType === 'grid'
+                                        ? 'bg-white dark:bg-gray-800 shadow-sm text-amber-600 dark:text-amber-400 border border-gray-200 dark:border-gray-600'
                                         : 'text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300'
-                                }`}
+                                    }`}
                                 title="Grid View"
                             >
-                                <LayoutGrid className="w-4 h-4" />
+                                <LayoutGrid className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                             </button>
                         </div>
 
-                        <Link 
-                            href={route('admin.parties.create')} 
-                            className="group relative bg-gradient-to-r from-amber-600 to-amber-500 text-white px-6 py-2.5 rounded-xl text-sm font-medium inline-flex items-center shadow-lg shadow-amber-500/25 hover:shadow-xl hover:scale-[1.02] transition-all duration-200"
+                        <Link
+                            href={route('admin.parties.create')}
+                            className="group relative bg-gradient-to-r from-amber-600 to-amber-500 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium inline-flex items-center justify-center shadow-lg shadow-amber-500/25 hover:shadow-xl hover:scale-[1.02] transition-all duration-200"
                         >
-                            <div className="absolute inset-0 rounded-xl bg-white opacity-0 group-hover:opacity-20 transition-opacity" />
-                            <Plus className="w-4 h-4 mr-2" /> 
-                            Add New Supplier
+                            <div className="absolute inset-0 rounded-lg sm:rounded-xl bg-white opacity-0 group-hover:opacity-20 transition-opacity" />
+                            <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
+                            <span className="whitespace-nowrap">Add New Supplier</span>
                         </Link>
                     </div>
                 </div>
@@ -187,7 +206,7 @@ export default function PartyIndex({ parties }: any) {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5 shadow-sm hover:shadow-md transition-all hover:scale-[1.02]">
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 rounded-lg">
@@ -200,7 +219,7 @@ export default function PartyIndex({ parties }: any) {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5 shadow-sm hover:shadow-md transition-all hover:scale-[1.02]">
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/30 dark:to-purple-800/30 rounded-lg">
@@ -213,7 +232,7 @@ export default function PartyIndex({ parties }: any) {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5 shadow-sm hover:shadow-md transition-all hover:scale-[1.02]">
                         <div className="flex items-center gap-4">
                             <div className="p-3 bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/30 dark:to-emerald-800/30 rounded-lg">
@@ -233,23 +252,23 @@ export default function PartyIndex({ parties }: any) {
                 {/* Content Area */}
                 {viewType === 'table' ? (
                     <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden shadow-xl shadow-gray-200/50 dark:shadow-gray-900/30 animate-in fade-in duration-500">
-                        <DataTable 
-                            columns={columns} 
-                            data={parties} 
-                            emptyMessage="No fuel suppliers registered yet." 
+                        <DataTable
+                            columns={columns}
+                            data={filteredParties}
+                            emptyMessage="No fuel suppliers registered yet."
                         />
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in slide-in-from-bottom-4 duration-500">
-                        {parties.map((party: any, index: number) => (
-                            <div 
-                                key={party.id} 
+                        {filteredParties.map((party: any, index: number) => (
+                            <div
+                                key={party.id}
                                 className="group relative bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl p-6 shadow-sm hover:shadow-xl hover:border-amber-200 dark:hover:border-amber-700 transition-all duration-300 hover:scale-[1.02]"
                                 style={{ animationDelay: `${index * 50}ms` }}
                             >
                                 {/* Premium Gradient Accent */}
                                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 to-amber-400 dark:from-amber-600 dark:to-amber-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left rounded-t-2xl" />
-                                
+
                                 {/* Background Pattern */}
                                 <div className="absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity duration-300">
                                     <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500 rounded-full blur-3xl" />
@@ -267,8 +286,8 @@ export default function PartyIndex({ parties }: any) {
                                                 </div>
                                             )}
                                         </div>
-                                        
-                                        <Link 
+
+                                        <Link
                                             href={route('admin.parties.edit', { party: party.id })}
                                             className="h-9 w-9 flex items-center justify-center rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-400 dark:text-gray-500 hover:bg-amber-600 hover:text-white dark:hover:bg-amber-600 transition-all duration-200"
                                         >
@@ -308,11 +327,10 @@ export default function PartyIndex({ parties }: any) {
                                             </p>
                                             <div className="flex items-center gap-1.5">
                                                 <ShieldCheck className={`w-3.5 h-3.5 ${party.gst_number ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500'}`} />
-                                                <span className={`text-xs font-mono font-semibold px-2 py-0.5 rounded-full ${
-                                                    party.gst_number 
-                                                        ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' 
+                                                <span className={`text-xs font-mono font-semibold px-2 py-0.5 rounded-full ${party.gst_number
+                                                        ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
                                                         : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-                                                }`}>
+                                                    }`}>
                                                     {party.gst_number ? 'Registered' : 'Not Registered'}
                                                 </span>
                                             </div>
@@ -347,22 +365,28 @@ export default function PartyIndex({ parties }: any) {
                 )}
 
                 {/* Enhanced Empty State */}
-                {parties.length === 0 && (
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-12 text-center shadow-xl">
-                        <div className="inline-flex p-4 bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/30 rounded-2xl mb-6">
-                            <Briefcase className="w-12 h-12 text-amber-600 dark:text-amber-400" />
+                {filteredParties.length === 0 && (
+                    <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl border border-gray-100 dark:border-gray-700 p-6 sm:p-8 lg:p-12 text-center shadow-xl">
+                        <div className="inline-flex p-3 sm:p-4 bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/30 rounded-xl sm:rounded-2xl mb-4 sm:mb-6">
+                            <Briefcase className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 text-amber-600 dark:text-amber-400" />
                         </div>
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No suppliers yet</h3>
-                        <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-md mx-auto">
-                            Start building your supply chain by adding your first fuel vendor or procurement partner.
+                        <h3 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">
+                            {searchTerm ? 'No suppliers found' : 'No suppliers yet'}
+                        </h3>
+                        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-6 sm:mb-8 max-w-md mx-auto px-2">
+                            {searchTerm
+                                ? `No suppliers match "${searchTerm}". Try a different search term.`
+                                : 'Start building your supply chain by adding your first fuel vendor or procurement partner.'}
                         </p>
-                        <Link
-                            href={route('admin.parties.create')}
-                            className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-600 to-amber-500 text-white px-6 py-3 rounded-xl text-sm font-medium shadow-lg shadow-amber-500/25 hover:shadow-xl hover:scale-[1.02] transition-all duration-200"
-                        >
-                            <Plus className="w-4 h-4" />
-                            Add Your First Supplier
-                        </Link>
+                        {!searchTerm && (
+                            <Link
+                                href={route('admin.parties.create')}
+                                className="inline-flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-amber-600 to-amber-500 text-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium shadow-lg shadow-amber-500/25 hover:shadow-xl hover:scale-[1.02] transition-all duration-200"
+                            >
+                                <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                                Add Your First Supplier
+                            </Link>
+                        )}
                     </div>
                 )}
             </div>

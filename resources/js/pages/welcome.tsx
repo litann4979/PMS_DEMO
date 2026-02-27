@@ -1,8 +1,9 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import { dashboard, login } from '@/routes';
+import { create as login } from '@/actions/Laravel/Fortify/Http/Controllers/AuthenticatedSessionController';
+import { index as dashboard } from '@/actions/App/Http/Controllers/Admin/DashboardController';
 import type { SharedData } from '@/types';
-import { 
-    Fuel, Droplets, Truck, Users, ShoppingCart, 
+import {
+    Fuel, Droplets, Truck, Users, ShoppingCart,
     Gauge, ShieldCheck, ArrowRight, Star, Clock,
     TrendingUp, DollarSign, BarChart3, Zap
 } from 'lucide-react';
@@ -23,7 +24,7 @@ export default function Welcome({
                     rel="stylesheet"
                 />
             </Head>
-            
+
             <div className="min-h-screen bg-gradient-to-br from-amber-50/50 via-white to-orange-50/50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
                 {/* Animated Background Elements */}
                 <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -50,7 +51,7 @@ export default function Welcome({
                             <div className="flex items-center gap-3 sm:gap-4">
                                 {auth.user ? (
                                     <Link
-                                        href={dashboard()}
+                                        href={dashboard.url()}
                                         className="group relative px-5 sm:px-6 py-2 sm:py-2.5 bg-gradient-to-r from-amber-600 to-amber-500 text-white rounded-xl text-sm font-medium shadow-lg shadow-amber-500/25 hover:shadow-xl transition-all duration-200 hover:scale-[1.02]"
                                     >
                                         <span className="relative z-10 flex items-center gap-2">
@@ -60,15 +61,15 @@ export default function Welcome({
                                     </Link>
                                 ) : (
                                     <>
-                                      
-                                 
-                                            <Link
-                                                href={login()}
-                                                className="px-4 sm:px-5 py-2 bg-gradient-to-r from-amber-600 to-amber-500 text-white rounded-xl text-sm font-medium shadow-lg shadow-amber-500/25 hover:shadow-xl hover:scale-[1.02] transition-all duration-200"
-                                            >
-                                                Log in
-                                            </Link>
-                                        
+
+
+                                        <Link
+                                            href={login()}
+                                            className="px-4 sm:px-5 py-2 bg-gradient-to-r from-amber-600 to-amber-500 text-white rounded-xl text-sm font-medium shadow-lg shadow-amber-500/25 hover:shadow-xl hover:scale-[1.02] transition-all duration-200"
+                                        >
+                                            Log in
+                                        </Link>
+
                                     </>
                                 )}
                             </div>
@@ -288,7 +289,7 @@ export default function Welcome({
                                 Join thousands of fuel station owners who are already using PMS to streamline their operations.
                             </p>
                             <Link
-                                href={login()}
+                                href={login.url()}
                                 className="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-white text-amber-600 rounded-xl text-sm sm:text-base font-semibold shadow-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-200"
                             >
                                 Log in

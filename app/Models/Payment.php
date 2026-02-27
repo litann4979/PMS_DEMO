@@ -19,6 +19,8 @@ class Payment extends Model
         'counterparty_id',
         'payment_date',
         'remarks',
+        'party_id',
+        'customer_id',
     ];
 
     protected $casts = [
