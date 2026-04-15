@@ -1,0 +1,13 @@
+[phases.setup]
+nixPkgs = ["php82", "nodejs_18", "composer"]
+
+[phases.build]
+cmds = [
+  "apt-get update && apt-get install -y php8.2-gd",
+  "composer install --no-dev --optimize-autoloader",
+  "npm install",
+  "npm run build"
+]
+
+[start]
+cmd = "php artisan serve --host=0.0.0.0 --port=$PORT"
