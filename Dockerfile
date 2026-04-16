@@ -19,10 +19,12 @@ COPY . .
 RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs
 RUN npm install && npm run build
 
-# IMPORTANT: expose correct port
+# Set permissions for Laravel (Crucial for Railway/Docker)
+RUN chown -R www-data:www-data /app/storage /app/bootstrap/cache
+
+# Railway uses the PORT environment variable automatically
 EXPOSE 8080
 
-# IMPORTANT: use Laravel server
-CMD php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
-
-CMD php artisan migrate --force && php -S 0.0.0.0:$PORT -t public
+# Combine migration and server start into ONE command
+# Use 'php artisan serve' which is more reliable for simple Laravel setups on Railway
+CMD php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
