@@ -24,3 +24,5 @@ EXPOSE 8080
 
 # IMPORTANT: use Laravel server
 CMD php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
+
+CMD php artisan migrate --force && php -S 0.0.0.0:$PORT -t public
